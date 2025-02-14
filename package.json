@@ -1,0 +1,32 @@
+{
+  "name": "particles-engine",
+  "version": "0.0.0",
+  "description": "ThreeJS Particles Simulation",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/polarfront-lab/particles-engine.git"
+  },
+  "keywords": [
+    "threejs",
+    "particles",
+    "simulation"
+  ],
+  "author": "state303",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/polarfront-lab/particles-engine/issues"
+  },
+  "homepage": "https://github.com/polarfront-lab/particles-engine#readme",
+  "devDependencies": {
+    "@types/jest": "^29.5.14",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.2.5",
+    "ts-node": "^10.9.2",
+    "tsup": "^8.3.6",
+    "typescript": "^5.7.3"
+  }
+}

@@ -1,0 +1,13 @@
+# node
+/node_modules
+/dist
+
+# jetbrains
+/.idea
+
+# coverage
+/coverage/
+/coverage.data
+
+# pnpm
+pnpm-lock.yaml
