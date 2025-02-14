@@ -4,14 +4,17 @@
   "description": "ThreeJS Particles Simulation",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
-  "types": "./diost/index.d.ts",
+  "types": "./dist/index.d.ts",
   "files": [
     "dist"
   ],
   "scripts": {
     "build": "tsup",
-    "test": "jest"
+    "test": "jest",
+    "prepare": "husky",
+    "fmt": "prettier --write --list-different ."
   },
+  "release": "semantic-release",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/polarfront-lab/particles-engine.git"
@@ -27,17 +30,24 @@
     "url": "https://github.com/polarfront-lab/particles-engine/issues"
   },
   "homepage": "https://github.com/polarfront-lab/particles-engine#readme",
+  "dependencies": {
+    "three": "^0.173.0",
+    "three-stdlib": "^2.35.13"
+  },
   "devDependencies": {
+    "@commitlint/cli": "^19.7.1",
+    "@commitlint/config-angular": "^19.7.1",
+    "@commitlint/config-conventional": "^19.7.1",
+    "@ianvs/prettier-plugin-sort-imports": "^4.4.1",
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/exec": "^7.0.3",
     "@types/jest": "^29.5.14",
     "@types/three": "^0.173.0",
+    "husky": "^9.1.7",
     "jest": "^29.7.0",
     "ts-jest": "^29.2.5",
     "ts-node": "^10.9.2",
     "tsup": "^8.3.6",
     "typescript": "^5.7.3"
-  },
-  "dependencies": {
-    "three": "^0.173.0",
-    "three-stdlib": "^2.35.13"
   }
 }
