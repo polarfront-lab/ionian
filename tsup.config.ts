@@ -9,5 +9,5 @@ export default defineConfig({
     dts: true, // Generate type declaration files
     minify: true, // Minify the output for production
     target: "es2020", // Target ES2020 for better compatibility
-    external: ["three"], // External dependencies that should not be bundled
+    external: ["three", "three-stdlib"], // External dependencies that should not be bundled
 })
