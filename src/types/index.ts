@@ -34,7 +34,6 @@ export type DataTextureEntry = {
 
 export type ServiceType = 'data-texture' | 'matcap' | 'instanced-mesh' | 'simulation';
 export type ServiceState = 'created' | 'initializing' | 'ready' | 'disposed' | 'error' | 'loading';
-
 export type TransitionType = 'data-texture' | 'matcap';
 
 export interface TransitionDetail {
