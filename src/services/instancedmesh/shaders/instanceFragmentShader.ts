@@ -20,4 +20,4 @@ void main() {
     vec4 matcap = mix(sourceMatcap, targetMatcap, uProgress);
     gl_FragColor = matcap;
 }
-`
+`;

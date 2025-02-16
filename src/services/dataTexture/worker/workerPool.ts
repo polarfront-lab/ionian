@@ -1,10 +1,10 @@
+import { MeshSamplerAPI } from '@/services/dataTexture/worker/meshSampler.worker';
 import * as Comlink from 'comlink';
 import genericPool from 'generic-pool';
-import { MeshSamplerAPI } from './meshSampler.worker';
 
 const workerFactory: genericPool.Factory<Comlink.Remote<MeshSamplerAPI>> = {
   create: async () => {
-    const workerPath = './assets/meshSampler.worker.js';
+    const workerPath = new URL('./meshSampler.worker.ts', import.meta.url);
     const worker = new Worker(workerPath, { type: 'module' });
     return Comlink.wrap<MeshSamplerAPI>(worker);
   },

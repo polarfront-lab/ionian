@@ -42,4 +42,4 @@ void main() {
 
     gl_Position = projectionMatrix * modelViewPosition;
 }
-`
+`;

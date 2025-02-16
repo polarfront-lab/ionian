@@ -1,35 +1,46 @@
 {
-  "name": "particles-engine",
+  "name": "@polarfront-lab/ionian",
   "version": "0.0.0",
-  "description": "ThreeJS Particles Simulation",
-  "main": "./dist/index.js",
-  "module": "./dist/index.mjs",
+  "description": "ThreeJS Collection Set",
+  "main": "./dist/index.umd.js",
+  "module": "./dist/index.es.js",
   "types": "./dist/index.d.ts",
   "files": [
     "dist"
   ],
+  "exports": {
+    ".": {
+      "import": "./dist/index.es.js",
+      "require": "./dist/index.umd.js"
+    }
+  },
+  "type": "module",
   "scripts": {
-    "build": "tsup",
+    "dev": "tsc && vite --watch",
+    "start": "vite --host --open",
+    "build": "tsc && vite build",
+    "build:types": "dts-bundle-generator --config ./dts-bundle-generator.config.ts",
     "test": "jest",
     "prepare": "husky",
-    "fmt": "prettier --write --list-different ."
+    "lint:scripts": "eslint ./src --ext .ts",
+    "fmt": "prettier --write --list-different  ."
   },
   "release": "semantic-release",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/polarfront-lab/particles-engine.git"
+    "url": "git+https://github.com/polarfront-lab/ionian.git"
   },
   "keywords": [
     "threejs",
     "particles",
     "simulation"
   ],
-  "author": "state303",
+  "author": "Seunghyun Bae <state303@dsub.io> (https://echovisionlab.com)",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/polarfront-lab/particles-engine/issues"
+    "url": "https://github.com/polarfront-lab/ionian/issues"
   },
-  "homepage": "https://github.com/polarfront-lab/particles-engine#readme",
+  "homepage": "https://github.com/polarfront-lab/ionian#readme",
   "dependencies": {
     "comlink": "^4.4.2",
     "generic-pool": "^3.9.0",
@@ -45,12 +56,20 @@
     "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/exec": "^7.0.3",
     "@types/jest": "^29.5.14",
+    "@types/node": "^22.13.4",
     "@types/three": "^0.173.0",
+    "esbuild-plugin-copy": "^2.1.1",
+    "eslint": "^9.20.1",
+    "eslint-config-prettier": "^10.0.1",
+    "eslint-plugin-prettier": "^5.2.3",
     "husky": "^9.1.7",
     "jest": "^29.7.0",
+    "terser": "^5.39.0",
     "ts-jest": "^29.2.5",
     "ts-node": "^10.9.2",
-    "tsup": "^8.3.6",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "vite": "^6.1.0",
+    "vite-plugin-dts": "^4.5.0",
+    "vite-plugin-node-polyfills": "^0.23.0"
   }
 }

@@ -1,6 +1,6 @@
 import { linear } from '@/easing';
 import { DefaultEventEmitter } from '@/events/defaultEventEmitter';
-import { DataTextureService } from '@/services/datatexture/dataTextureService';
+import { DataTextureService } from '@/services/dataTexture/dataTextureService';
 import { InstancedMeshManager } from '@/services/instancedmesh/instancedMeshManager';
 import { IntersectionService } from '@/services/intersection/intersectionService';
 import { MatcapService } from '@/services/matcap/matcapService';

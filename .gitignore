@@ -11,3 +11,4 @@
 
 # pnpm
 pnpm-lock.yaml
+.env

@@ -47,7 +47,7 @@ export class TransitionService {
       ...transition,
       ...options,
       cancelled: false,
-      duration: transition.duration * 0.001 // convert to seconds
+      duration: transition.duration * 0.001, // convert to seconds
     };
     this.getQueue(type).push(transitionQueueItem);
   }

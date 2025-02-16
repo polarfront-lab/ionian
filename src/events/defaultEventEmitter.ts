@@ -1,7 +1,7 @@
-import { Events } from '@/lib/engine/events/topics';
+import { Events } from '@/events/topics';
 import mitt from 'mitt';
 
-export class DefaultEventEmitter implements EventEmitter<Events> {
+export class DefaultEventEmitter implements EngineEventEmitter<Events> {
   private readonly emitter = mitt<Events>();
 
   emit<Key extends keyof Events>(type: Key, payload: Events[Key]): void {

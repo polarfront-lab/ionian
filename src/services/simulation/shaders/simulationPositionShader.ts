@@ -29,4 +29,4 @@ void main() {
     position += velocity;
     gl_FragColor = vec4(position, 1.0);
 }
-`
+`;

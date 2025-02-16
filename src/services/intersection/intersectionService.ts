@@ -17,7 +17,7 @@ export class IntersectionService {
   private intersectionMesh = new THREE.Mesh();
 
   private geometryNeedsUpdate: boolean;
-  private eventEmitter: EventEmitter<Events>;
+  private eventEmitter: EngineEventEmitter<Events>;
 
   private blendedGeometry?: THREE.BufferGeometry;
   private intersection?: THREE.Vector4;

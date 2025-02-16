@@ -1,5 +1,4 @@
-import { createBlankDataTexture, createSpherePoints } from '@/utils';
-import { clamp } from '@/utils';
+import { clamp, createBlankDataTexture, createSpherePoints } from '@/utils';
 import * as THREE from 'three';
 import { GPUComputationRenderer, Variable } from 'three/examples/jsm/misc/GPUComputationRenderer';
 import mixShader from './shaders/simulationMixShader';
