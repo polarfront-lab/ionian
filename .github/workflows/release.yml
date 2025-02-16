@@ -59,3 +59,4 @@ jobs:
             @semantic-release/git@10
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
