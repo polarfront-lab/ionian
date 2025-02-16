@@ -26,6 +26,10 @@
     "fmt": "prettier --write --list-different  ."
   },
   "release": "semantic-release",
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/polarfront-lab/ionian.git"
