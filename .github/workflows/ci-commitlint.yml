@@ -27,6 +27,23 @@ jobs:
         name: Install pnpm
         with:
           version: 10
+          
+      - name: Prepare prerelease semantic
+        if: github.ref != 'refs/heads/main'
+        run: mv .releaserc.prerelease.yaml .releaserc.yaml
+
+      - name: Configure pnpm cache
+        id: pnpm-cache
+        run: echo "STORE_PATH=${pnpm store path}" >> $GITHUB_OUTPUT
+
+      - uses: actions/cache@v3
+        name: Cache pnpm dependencies
+        id: pnpm-cache
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
 
       - name: Install dependencies
         # If we don't do this, commitlint throws
