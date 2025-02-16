@@ -31,7 +31,7 @@ export default defineConfig(({ command, mode }): UserConfig => {
       lib: {
         entry: path.resolve(__dirname, 'src/index.ts'),
         name: 'ionian',
-        formats: ['es', 'cjs', 'umd', 'iife'],
+        formats: ['es', 'cjs', 'iife'],
         fileName: (format) => `index.${format}.js`,
       },
       rollupOptions: {
