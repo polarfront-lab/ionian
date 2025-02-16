@@ -1,1 +1,3 @@
-# Particles Engine
+# Ionian
+
+Ionian is a ThreeJS Collection Set.
