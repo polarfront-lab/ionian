@@ -1,4 +1,4 @@
-module.exports = {
+export default {
   preset: 'ts-jest',
   testEnvironment: 'node',
   coverageDirectory: './coverage',
@@ -11,7 +11,6 @@ module.exports = {
       statements: 100,
     },
   },
-  setupFilesAfterEnv: ['jest-extended/all'],
   testMatch: ['**/tests/**/*.test.ts'],
   globals: {
     'ts-jest': {
