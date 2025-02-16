@@ -10,4 +10,11 @@ export default defineConfig({
   minify: true, // Minify the output for production
   target: 'es2020', // Target ES2020 for better compatibility
   external: ['three', 'three-stdlib'], // External dependencies that should not be bundled
+  esbuildOptions(options) {
+    options.assetNames = 'assets/[name]-[hash]';
+    options.loader = {
+      ...options.loader,
+      '.worker.js': 'file',
+    }
+  }
 });
