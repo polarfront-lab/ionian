@@ -3,21 +3,6 @@ import * as THREE from 'three';
 import { MeshSurfaceSampler } from 'three/examples/jsm/math/MeshSurfaceSampler';
 
 /**
- * Checks if a map exists and contains a specific key.
- * @param items - The map to check.
- * @param key - The key to look for.
- * @returns True if the map exists and contains the key, false otherwise.
- */
-export function existsAndContainsKey<K, T>(items?: Map<K, T>, key?: K) {
-  if (items) {
-    if (key) {
-      return items.has(key);
-    }
-  }
-  return true;
-}
-
-/**
  * Creates a new DataTexture from the given data and size.
  * @param data - The data for the texture.
  * @param size - The size of the texture.
@@ -36,30 +21,6 @@ export function createDataTexture(data: Float32Array, size: number) {
  */
 export function createBlankDataTexture(size: number) {
   return createDataTexture(new Float32Array(4 * size * size), size);
-}
-
-/**
- * Samples a mesh surface to create a DataTexture.
- * @param mesh - The mesh to sample.
- * @param size - The size of the texture.
- * @returns The created DataTexture.
- */
-export function sampleMesh(mesh: THREE.Mesh, size: number) {
-  const sampler = new MeshSurfaceSampler(mesh).build();
-  const data = new Float32Array(size * size * 4);
-  const position = new THREE.Vector3();
-
-  for (let i = 0; i < size; i++) {
-    for (let j = 0; j < size; j++) {
-      const index = i * size + j;
-      sampler.sample(position);
-      data[4 * index] = position.x * mesh.scale.x;
-      data[4 * index + 1] = position.y = mesh.scale.y;
-      data[4 * index + 2] = position.z = mesh.scale.z;
-      data[4 * index + 3] = (Math.random() - 0.5) * 0.01;
-    }
-  }
-  return createDataTexture(data, size);
 }
 
 /**
@@ -97,15 +58,6 @@ export function disposeIfPossible(object: unknown) {
   if (typeof object === 'object' && object !== null && 'dispose' in object && typeof object['dispose'] === 'function') {
     object.dispose();
   }
-}
-
-/**
- * Disposes of a map.
- * @param map - The map to dispose.
- */
-export function disposeMap<K, T>(map: Map<K, T>) {
-  map.forEach((value) => disposeIfPossible(value));
-  map.clear();
 }
 
 /**
