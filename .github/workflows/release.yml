@@ -35,7 +35,7 @@ jobs:
 
       - name: Install Package Dependencies
         # needed for both commitlint and semantic-release to work
-        run: pnpm ci
+        run: pnpm i
 
       - name: Build Library
         run: pnpm run build
