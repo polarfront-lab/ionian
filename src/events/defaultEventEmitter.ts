@@ -1,6 +1,6 @@
+import { EngineEventEmitter } from '@/events/engineEventEmitter';
 import { Events } from '@/events/topics';
 import mitt from 'mitt';
-import { EngineEventEmitter } from '@/events/engineEventEmitter';
 
 export class DefaultEventEmitter implements EngineEventEmitter<Events> {
   private readonly emitter = mitt<Events>();

@@ -2,24 +2,11 @@
   "name": "@polarfront-lab/ionian",
   "version": "0.0.0",
   "description": "ThreeJS Collection Set",
-  "main": "./dist/ionian.umd.cjs",
-  "module": "./dist/ionian.js",
-  "types": "./dist/index.d.ts",
+  "main": "dist/ionian.js",
+  "types": "dist/index.d.ts",
   "files": [
     "dist"
   ],
-  "exports": {
-    ".": {
-      "import": {
-        "types": "./dist/index.d.ts",
-        "default": "./dist/ionian.js"
-      },
-      "require": {
-        "types": "./dist/index.d.ts",
-        "default": "./dist/ionian.umd.cjs"
-      }
-    }
-  },
   "type": "module",
   "scripts": {
     "dev": "tsc && vite --watch",
@@ -29,7 +16,7 @@
     "test": "jest",
     "prepare": "husky",
     "lint:scripts": "eslint ./src --ext .ts",
-    "fmt": "prettier --write --list-different  ."
+    "fmt": "prettier --write --list-different  ./src/**/*.{ts,tsx}"
   },
   "release": "semantic-release",
   "publishConfig": {
