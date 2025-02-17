@@ -43,7 +43,7 @@ export default defineConfig(({ command, mode }): UserConfig => {
       },
       commonjsOptions: {
         esmExternals: ['three', 'three-stdlib'],
-      }
+      },
     },
   };
 });

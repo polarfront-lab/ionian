@@ -33,7 +33,7 @@ jobs:
         with:
           node-version: 20
           cache: 'pnpm'
-          
+
       - name: Prepare prerelease semantic
         if: github.ref != 'refs/heads/main'
         run: mv .releaserc.prerelease.yaml .releaserc.yaml

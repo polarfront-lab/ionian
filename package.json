@@ -29,7 +29,7 @@
     "test": "jest",
     "prepare": "husky",
     "lint:scripts": "eslint ./src --ext .ts",
-    "fmt": "prettier --write --list-different  ."
+    "fmt": "prettier --write --list-different  ./src/**/*.ts"
   },
   "release": "semantic-release",
   "publishConfig": {
