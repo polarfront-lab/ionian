@@ -1,7 +1,6 @@
 import { DefaultEventEmitter, EngineEventEmitter, Events } from '@/events';
 
 import * as THREE from 'three';
-import { EngineEventEmitter } from '@/events/engineEventEmitter';
 
 /**
  * Service for calculating intersections between a ray and a morphed geometry.
