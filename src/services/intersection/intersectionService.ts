@@ -1,5 +1,5 @@
-import { DefaultEventEmitter, Events } from '@/events';
-import { EngineEventEmitter } from '@/events/engineEventEmitter';
+import { DefaultEventEmitter, EngineEventEmitter, Events } from '@/events';
+
 import * as THREE from 'three';
 import { EngineEventEmitter } from '@/events/engineEventEmitter';
 
