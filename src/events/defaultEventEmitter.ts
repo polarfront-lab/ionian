@@ -1,3 +1,4 @@
+import { EngineEventEmitter } from '@/events/engineEventEmitter';
 import { Events } from '@/events/topics';
 import mitt from 'mitt';
 import { EngineEventEmitter } from '@/events/engineEventEmitter';
