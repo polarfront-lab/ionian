@@ -1,4 +1,4 @@
-import { AssetEntry, Assets } from '@/types';
+import { AssetEntry, Assets } from '@/lib/types';
 import * as THREE from 'three';
 
 /**

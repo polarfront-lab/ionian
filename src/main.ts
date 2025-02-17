@@ -1,8 +1,8 @@
-import { ParticlesEngine } from '@/particlesEngine';
-import { AssetEntry } from '@/types';
+import { ParticlesEngine } from '@/lib/particlesEngine';
+import { AssetEntry } from '@/lib/types';
+import Stats from 'stats.js';
 import * as THREE from 'three';
 import { DRACOLoader, GLTFLoader } from 'three-stdlib';
-import Stats from 'stats.js';
 
 const gltfLoader = new GLTFLoader();
 const dracoLoader = new DRACOLoader();

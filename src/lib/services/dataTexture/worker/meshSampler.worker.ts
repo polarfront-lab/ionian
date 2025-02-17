@@ -1,4 +1,4 @@
-import { MeshData } from '@/types';
+import { MeshData } from '@/lib/types';
 import * as Comlink from 'comlink';
 import * as THREE from 'three';
 import { MeshSurfaceSampler } from 'three/examples/jsm/math/MeshSurfaceSampler.js';

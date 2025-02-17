@@ -1,7 +1,7 @@
-import { DefaultEventEmitter } from '@/events/defaultEventEmitter';
-import pool from '@/services/dataTexture/worker/workerPool';
-import { AssetEntry, MeshData, ServiceState } from '@/types';
-import { copyOf, createDataTexture } from '@/utils';
+import { DefaultEventEmitter } from '@/lib/events/defaultEventEmitter';
+import pool from '@/lib/services/dataTexture/worker/workerPool';
+import { AssetEntry, MeshData, ServiceState } from '@/lib/types';
+import { copyOf, createDataTexture } from '@/lib/utils';
 import * as THREE from 'three';
 
 /**

@@ -1,4 +1,4 @@
-import { TransitionEvents } from '@/events/topics/transition';
+import { TransitionEvents } from '@/lib/events/topics/transition';
 import { DataTextureEvents } from './dataTexture';
 import { GlobalEvents } from './global';
 import { MatcapEvents } from './matcap';

@@ -1,6 +1,6 @@
-import { DefaultEventEmitter } from '@/events';
-import { TransitionDetail, TransitionOptions, TransitionType } from '@/types';
-import { clamp } from '@/utils';
+import { DefaultEventEmitter } from '@/lib/events';
+import { TransitionDetail, TransitionOptions, TransitionType } from '@/lib/types';
+import { clamp } from '@/lib/utils';
 
 type ExecStatus = 'idle' | 'running';
 

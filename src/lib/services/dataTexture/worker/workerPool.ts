@@ -1,4 +1,4 @@
-import { MeshSamplerAPI } from '@/services/dataTexture/worker/meshSampler.worker';
+import { MeshSamplerAPI } from '@/lib/services/dataTexture/worker/meshSampler.worker';
 import * as Comlink from 'comlink';
 import genericPool from 'generic-pool';
 

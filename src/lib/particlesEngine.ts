@@ -1,13 +1,13 @@
-import { linear } from '@/easing';
-import { DefaultEventEmitter } from '@/events/defaultEventEmitter';
-import { DataTextureService } from '@/services/dataTexture/dataTextureService';
-import { InstancedMeshManager } from '@/services/instancedmesh/instancedMeshManager';
-import { IntersectionService } from '@/services/intersection/intersectionService';
-import { MatcapService } from '@/services/matcap/matcapService';
-import { SimulationRendererService } from '@/services/simulation/simulationRendererService';
-import { TransitionService } from '@/services/transition/transitionService';
-import { AssetEntry, EasingFunction, ServiceState, ServiceType, TransitionType } from '@/types';
-import { EngineState } from '@/types/state';
+import { linear } from '@/lib/easing';
+import { DefaultEventEmitter } from '@/lib/events/defaultEventEmitter';
+import { DataTextureService } from '@/lib/services/dataTexture/dataTextureService';
+import { InstancedMeshManager } from '@/lib/services/instancedmesh/instancedMeshManager';
+import { IntersectionService } from '@/lib/services/intersection/intersectionService';
+import { MatcapService } from '@/lib/services/matcap/matcapService';
+import { SimulationRendererService } from '@/lib/services/simulation/simulationRendererService';
+import { TransitionService } from '@/lib/services/transition/transitionService';
+import { AssetEntry, EasingFunction, ServiceState, ServiceType, TransitionType } from '@/lib/types';
+import { EngineState } from '@/lib/types/state';
 import * as THREE from 'three';
 
 /**

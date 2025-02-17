@@ -1,4 +1,4 @@
-import { ServiceState, ServiceType } from '@/types';
+import { ServiceState, ServiceType } from '@/lib/types';
 import * as THREE from 'three';
 
 export type GlobalEvents = {

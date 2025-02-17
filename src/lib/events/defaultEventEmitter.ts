@@ -1,5 +1,5 @@
 import { EngineEventEmitter } from './engineEventEmitter';
-import { Events } from '@/events/topics';
+import { Events } from '@/lib/events/topics';
 import mitt from 'mitt';
 
 export class DefaultEventEmitter implements EngineEventEmitter<Events> {

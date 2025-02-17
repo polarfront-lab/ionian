@@ -60,6 +60,9 @@ importers:
       '@types/node':
         specifier: ^22.13.4
         version: 22.13.4
+      '@types/stats.js':
+        specifier: ^0.17.3
+        version: 0.17.3
       '@types/three':
         specifier: ^0.173.0
         version: 0.173.0

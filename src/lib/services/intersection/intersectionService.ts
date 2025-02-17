@@ -1,4 +1,4 @@
-import { DefaultEventEmitter, EngineEventEmitter, Events } from '@/events';
+import { DefaultEventEmitter, EngineEventEmitter, Events } from '@/lib/events';
 
 import * as THREE from 'three';
 

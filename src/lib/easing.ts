@@ -1,4 +1,4 @@
-import { EasingFunction } from '@/types';
+import { EasingFunction } from '@/lib/types';
 
 /**
  * Linear easing function.

@@ -1,5 +1,5 @@
-import { DefaultEventEmitter } from '@/events';
-import { AssetEntry, ServiceState } from '@/types';
+import { DefaultEventEmitter } from '@/lib/events';
+import { AssetEntry, ServiceState } from '@/lib/types';
 import * as THREE from 'three';
 
 export class MatcapService {

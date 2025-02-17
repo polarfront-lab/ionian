@@ -1,5 +1,5 @@
-import { DefaultEventEmitter } from '@/events';
-import { DataTextureEntry, ServiceState } from '@/types';
+import { DefaultEventEmitter } from '@/lib/events';
+import { DataTextureEntry, ServiceState } from '@/lib/types';
 import * as THREE from 'three';
 import { SimulationRenderer } from './simulationRenderer';
 
