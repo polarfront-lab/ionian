@@ -1,7 +1,7 @@
 import { MeshData } from '@/types';
 import * as Comlink from 'comlink';
 import * as THREE from 'three';
-import { MeshSurfaceSampler } from 'three/examples/jsm/math/MeshSurfaceSampler';
+import { MeshSurfaceSampler } from 'three/examples/jsm/math/MeshSurfaceSampler.js';
 
 export interface MeshSamplerAPI {
   sampleMesh: (meshData: MeshData, size: number) => Promise<Float32Array>;

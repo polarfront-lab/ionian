@@ -1,6 +1,5 @@
 import { AssetEntry, Assets } from '@/types';
 import * as THREE from 'three';
-import { MeshSurfaceSampler } from 'three/examples/jsm/math/MeshSurfaceSampler';
 
 /**
  * Creates a new DataTexture from the given data and size.
