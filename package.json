@@ -2,16 +2,22 @@
   "name": "@polarfront-lab/ionian",
   "version": "0.0.0",
   "description": "ThreeJS Collection Set",
-  "main": "./dist/index.umd.js",
-  "module": "./dist/index.es.js",
+  "main": "./dist/ionian.umd.cjs",
+  "module": "./dist/ionian.js",
   "types": "./dist/index.d.ts",
   "files": [
     "dist"
   ],
   "exports": {
     ".": {
-      "import": "./dist/ionian.js",
-      "require": "./dist/ionian.umd.cjs"
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/ionian.js"
+      },
+      "require": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/ionian.umd.cjs"
+      }
     }
   },
   "type": "module",
