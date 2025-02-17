@@ -1,4 +1,4 @@
-export interface EngineEventEmitter<EventMap extends Record<string, unknown>> {
+interface EngineEventEmitter<EventMap extends Record<string, unknown>> {
   emit<Key extends keyof EventMap>(type: Key, payload: EventMap[Key]): void;
 
   off<Key extends keyof EventMap>(type: Key, handler?: (payload: EventMap[Key]) => void): void;
