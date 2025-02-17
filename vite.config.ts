@@ -31,7 +31,7 @@ export default defineConfig(({ command, mode }): UserConfig => {
       lib: {
         entry: path.resolve(__dirname, 'src/index.ts'),
         name: 'ionian',
-        formats: ['es', 'iife', 'umd'],
+        formats: ['es', 'iife'],
       },
       rollupOptions: {
         external: ['three', 'three-stdlib'],
@@ -41,9 +41,6 @@ export default defineConfig(({ command, mode }): UserConfig => {
           },
         },
       },
-      commonjsOptions: {
-        esmExternals: ['three', 'three-stdlib'],
-      }
     },
   };
 });

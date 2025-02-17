@@ -2,24 +2,11 @@
   "name": "@polarfront-lab/ionian",
   "version": "0.0.0",
   "description": "ThreeJS Collection Set",
-  "main": "./dist/ionian.umd.cjs",
-  "module": "./dist/ionian.js",
-  "types": "./dist/index.d.ts",
+  "main": "dist/ionian.js",
+  "types": "dist/index.d.ts",
   "files": [
     "dist"
   ],
-  "exports": {
-    ".": {
-      "import": {
-        "types": "./dist/index.d.ts",
-        "default": "./dist/ionian.js"
-      },
-      "require": {
-        "types": "./dist/index.d.ts",
-        "default": "./dist/ionian.umd.cjs"
-      }
-    }
-  },
   "type": "module",
   "scripts": {
     "dev": "tsc && vite --watch",
@@ -29,7 +16,7 @@
     "test": "jest",
     "prepare": "husky",
     "lint:scripts": "eslint ./src --ext .ts",
-    "fmt": "prettier --write --list-different  ."
+    "fmt": "prettier --write --list-different  ./src/**/*.{ts,tsx}"
   },
   "release": "semantic-release",
   "publishConfig": {
@@ -64,14 +51,15 @@
     "@commitlint/config-conventional": "^19.7.1",
     "@ianvs/prettier-plugin-sort-imports": "^4.4.1",
     "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/commit-analyzer": "^13.0.1",
     "@semantic-release/exec": "^7.0.3",
     "@semantic-release/git": "^10.0.1",
     "@semantic-release/github": "^11.0.1",
     "@semantic-release/release-notes-generator": "^14.0.3",
-    "@semantic-release/commit-analyzer": "^13.0.1",
     "@types/jest": "^29.5.14",
     "@types/node": "^22.13.4",
     "@types/three": "^0.173.0",
+    "dts-bundle-generator": "^9.5.1",
     "eslint": "^9.20.1",
     "eslint-config-prettier": "^10.0.1",
     "eslint-plugin-prettier": "^5.2.3",
@@ -84,5 +72,13 @@
     "vite": "^6.1.0",
     "vite-plugin-dts": "^4.5.0",
     "vite-plugin-node-polyfills": "^0.23.0"
+  },
+  "pnpm": {
+    "ignoredBuiltDependencies": [
+      "esbuild"
+    ],
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
   }
 }
