@@ -2,6 +2,7 @@ import { ParticlesEngine } from '@/particlesEngine';
 import { AssetEntry } from '@/types';
 import * as THREE from 'three';
 import { DRACOLoader, GLTFLoader } from 'three-stdlib';
+import Stats from 'stats.js';
 
 const gltfLoader = new GLTFLoader();
 const dracoLoader = new DRACOLoader();
@@ -92,6 +93,10 @@ function mouseEventHandler(event: MouseEvent) {
   engine.setPointerPosition({ x, y });
 }
 
+const stats = new Stats();
+stats.showPanel(0);
+document.body.appendChild(stats.dom);
+
 window.addEventListener('mousemove', mouseEventHandler);
 
 window.addEventListener('resize', resizeHandler);
@@ -113,8 +118,11 @@ window.addEventListener('onbeforeunload', () => {
 });
 
 function animate(timestamp: number) {
+  stats.begin();
+  engine.getObject().rotateY(0.001);
   engine.render(timestamp);
   renderer.render(scene, camera);
+  stats.end();
   requestAnimationFrame(animate);
 }
 

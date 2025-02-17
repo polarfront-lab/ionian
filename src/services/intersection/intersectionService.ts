@@ -41,6 +41,10 @@ export class IntersectionService {
     this.geometryNeedsUpdate = true;
   }
 
+  getIntersectionMesh(): THREE.Mesh {
+    return this.intersectionMesh;
+  }
+
   /**
    * Set the camera used for raycasting.
    * @param camera
@@ -111,7 +115,7 @@ export class IntersectionService {
    * Calculate the intersection.
    * @returns The intersection point or undefined if no intersection was found.
    */
-  calculate(): THREE.Vector4 | undefined {
+  calculate(instancedMesh: THREE.Mesh): THREE.Vector4 | undefined {
     if (!this.camera) return;
     if (!this.mouseEntered) return;
 
@@ -121,10 +125,12 @@ export class IntersectionService {
       this.mousePositionChanged = true;
     }
 
+    this.updateIntersectionMesh(instancedMesh);
+
     if (this.mousePositionChanged) {
       this.mousePositionChanged = false;
       if (this.blendedGeometry) {
-        this.intersection = this.getFirstIntersection(this.blendedGeometry, this.camera);
+        this.intersection = this.getFirstIntersection(this.camera);
       } else {
         this.intersection = undefined;
       }
@@ -147,9 +153,21 @@ export class IntersectionService {
     this.intersectionMesh.geometry.dispose();
   }
 
-  private getFirstIntersection(geometry: THREE.BufferGeometry, camera: THREE.Camera) {
+  private updateIntersectionMesh(instancedMesh: THREE.Mesh) {
+    if (this.blendedGeometry) {
+      if (this.blendedGeometry.uuid !== this.intersectionMesh.geometry.uuid) {
+        this.intersectionMesh.geometry.dispose();
+        this.intersectionMesh.geometry = this.blendedGeometry;
+      }
+    }
+    this.intersectionMesh.matrix.copy(instancedMesh.matrixWorld);
+    this.intersectionMesh.matrixWorld.copy(instancedMesh.matrixWorld);
+    this.intersectionMesh.matrixAutoUpdate = false;
+    this.intersectionMesh.updateMatrixWorld(true);
+  }
+
+  private getFirstIntersection(camera: THREE.Camera) {
     this.raycaster.setFromCamera(this.mousePosition, camera);
-    this.intersectionMesh.geometry = geometry;
     const intersection = this.raycaster.intersectObject(this.intersectionMesh, false)[0];
     if (intersection) {
       return new THREE.Vector4(intersection.point.x, intersection.point.y, intersection.point.z, 1);
@@ -183,6 +201,7 @@ export class IntersectionService {
     const blendedPositions = new Float32Array(originPositions.length);
 
     for (let i = 0; i < originPositions.length; i += 3) {
+
       const originVert = new THREE.Vector3(originPositions[i], originPositions[i + 1], originPositions[i + 2]);
       const destinationVert = new THREE.Vector3(destinationPositions[i], destinationPositions[i + 1], destinationPositions[i + 2]);
       const blendedVert = new THREE.Vector3().lerpVectors(originVert, destinationVert, progress);
@@ -190,6 +209,7 @@ export class IntersectionService {
       blendedPositions[i] = blendedVert.x;
       blendedPositions[i + 1] = blendedVert.y;
       blendedPositions[i + 2] = blendedVert.z;
+
     }
 
     blended.setAttribute('position', new THREE.BufferAttribute(blendedPositions, 3));

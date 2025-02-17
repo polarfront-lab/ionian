@@ -77,7 +77,7 @@ export class ParticlesEngine {
    */
 
   render(elapsedTime: number) {
-    this.intersectionService.calculate();
+    this.intersectionService.calculate(this.instancedMeshManager.getMesh());
     this.transitionService.compute(elapsedTime);
     this.simulationRendererService.compute(elapsedTime);
     this.instancedMeshManager.update(elapsedTime);
@@ -224,6 +224,11 @@ export class ParticlesEngine {
     console.log('service state updated', type, state);
     this.serviceStates[type] = state;
   }
+
+  getObject(): THREE.Mesh {
+    return this.instancedMeshManager.getMesh();
+  }
+
   /**
    * Disposes the resources used by the engine.
    */
