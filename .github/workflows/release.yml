@@ -50,7 +50,7 @@ jobs:
         run: pnpm run build:types
 
       - name: Verify the integrity of provenance attestations and registry signatures for installed dependencies
-        run: pnpm audit signature
+        run: pnpm audit signature -P
 
       - name: Create GitHub release
         uses: cycjimmy/semantic-release-action@v4

@@ -38,6 +38,7 @@ export default defineConfig(({ command, mode }): UserConfig => {
         output: {
           globals: {
             three: 'THREE',
+            'three-stdlib': 'three-stdlib',
           },
         },
       },
