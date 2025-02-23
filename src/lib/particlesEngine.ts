@@ -263,7 +263,6 @@ export class ParticlesEngine {
   }
 
   handleServiceStateUpdated({ type, state }: { type: ServiceType; state: ServiceState }) {
-    console.log('service state updated', type, state);
     this.serviceStates[type] = state;
   }
 
@@ -288,7 +287,7 @@ export class ParticlesEngine {
     this.instancedMeshManager.dispose();
     this.intersectionService.dispose();
     this.assetService.dispose();
-    this.dataTextureManager.dispose().then(() => console.log('engine disposed'));
+    this.dataTextureManager.dispose();
   }
 
   private initialEngineState(textureSize: number): EngineState {

@@ -49,6 +49,10 @@ export class AssetService {
     this.changeColor(color);
   }
 
+  getSolidColorTexture() {
+    return this.solidColorTexture;
+  }
+
   getMesh(id: string): THREE.Mesh | null {
     return this.meshes.get(id) ?? null;
   }

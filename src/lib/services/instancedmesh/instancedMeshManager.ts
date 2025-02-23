@@ -75,12 +75,10 @@ export class InstancedMeshManager {
    * @param matcap The matcap texture to set.
    */
   setOriginMatcap(matcap: THREE.Texture) {
-    console.log('set source matcap', matcap);
     this.matcapMaterial.uniforms.uSourceMatcap.value = matcap;
   }
 
   setDestinationMatcap(matcap: THREE.Texture) {
-    console.log('set target matcap', matcap);
     this.matcapMaterial.uniforms.uTargetMatcap.value = matcap;
   }
 
@@ -100,7 +98,6 @@ export class InstancedMeshManager {
    * Use the matcap material for the instanced mesh.
    */
   useMatcapMaterial() {
-    console.log('Using matcap material');
     this.mesh.material = this.matcapMaterial;
   }
 
@@ -112,8 +109,6 @@ export class InstancedMeshManager {
     const material = this.materials.get(id);
     if (material) {
       this.mesh.material = material;
-    } else {
-      console.warn(`material with id "${id}" not found`);
     }
   }
 
@@ -125,8 +120,6 @@ export class InstancedMeshManager {
     const geometry = this.geometries.get(id);
     if (geometry) {
       this.mesh.geometry = geometry;
-    } else {
-      console.warn(`geometry with id "${id}" not found`);
     }
   }
 
@@ -190,7 +183,6 @@ export class InstancedMeshManager {
       if (previous === geometry) {
         return;
       }
-      console.log(`geometry with id "${id}" already exists. replacing...`);
     }
 
     // finally, we are attaching uvRefs.
@@ -217,7 +209,6 @@ export class InstancedMeshManager {
       if (previous === material) {
         return;
       }
-      console.log(`material with id "${id}" already exists. replacing...`);
     }
 
     if (this.mesh.material === previous) {
