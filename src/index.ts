@@ -1,3 +1,3 @@
-export { ParticlesEngine } from './particlesEngine';
-export * from './types';
-export * from './events/topics';
+export { ParticlesEngine } from '@/lib/particlesEngine';
+export * from '@/lib/types';
+export * from '@/lib/events/topics';
