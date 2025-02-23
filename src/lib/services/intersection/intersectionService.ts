@@ -14,6 +14,7 @@ export class IntersectionService {
   private camera?: THREE.Camera;
   private originGeometry?: THREE.BufferGeometry;
   private destinationGeometry?: THREE.BufferGeometry;
+
   private progress: number = 0;
   private intersectionMesh = new THREE.Mesh();
 
@@ -25,7 +26,6 @@ export class IntersectionService {
 
   private lastKnownOriginMeshID?: string;
   private lastKnownDestinationMeshID?: string;
-
   /**
    * Creates a new IntersectionService instance.
    * @param eventEmitter The event emitter used for emitting events.
@@ -82,6 +82,7 @@ export class IntersectionService {
     // we need to clone the geometry because we are going to modify it.
     this.destinationGeometry = source.geometry.clone();
     this.destinationGeometry.applyMatrix4(source.matrixWorld);
+
     this.geometryNeedsUpdate = true;
   }
 
@@ -116,6 +117,8 @@ export class IntersectionService {
    * @returns The intersection point or undefined if no intersection was found.
    */
   calculate(instancedMesh: THREE.Mesh): THREE.Vector4 | undefined {
+    this.updateIntersectionMesh(instancedMesh);
+
     if (!this.camera) return;
     if (!this.mouseEntered) return;
 
@@ -125,12 +128,10 @@ export class IntersectionService {
       this.mousePositionChanged = true;
     }
 
-    this.updateIntersectionMesh(instancedMesh);
-
     if (this.mousePositionChanged) {
       this.mousePositionChanged = false;
       if (this.blendedGeometry) {
-        this.intersection = this.getFirstIntersection(this.camera);
+        this.intersection = this.getFirstIntersection(this.camera, instancedMesh);
       } else {
         this.intersection = undefined;
       }
@@ -166,11 +167,14 @@ export class IntersectionService {
     this.intersectionMesh.updateMatrixWorld(true);
   }
 
-  private getFirstIntersection(camera: THREE.Camera) {
+  private getFirstIntersection(camera: THREE.Camera, instancedMesh: THREE.Mesh) {
     this.raycaster.setFromCamera(this.mousePosition, camera);
+
     const intersection = this.raycaster.intersectObject(this.intersectionMesh, false)[0];
     if (intersection) {
-      return new THREE.Vector4(intersection.point.x, intersection.point.y, intersection.point.z, 1);
+      const worldPoint = intersection.point.clone()
+      const localPoint = instancedMesh.worldToLocal(worldPoint);
+      return new THREE.Vector4(localPoint.x, localPoint.y, localPoint.z, 1);
     }
   }
 

@@ -2,7 +2,7 @@ import { ParticlesEngine } from '@/lib/particlesEngine';
 import { AssetEntry } from '@/lib/types';
 import Stats from 'stats.js';
 import * as THREE from 'three';
-import { DRACOLoader, GLTFLoader } from 'three-stdlib';
+import { DRACOLoader, GLTFLoader, OrbitControls } from 'three-stdlib';
 
 const gltfLoader = new GLTFLoader();
 const dracoLoader = new DRACOLoader();
@@ -54,6 +54,7 @@ const canvas = document.getElementById('canvas') as HTMLCanvasElement;
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
+
 const renderer = new THREE.WebGLRenderer({ canvas });
 renderer.setSize(canvas.width, canvas.height);
 renderer.setPixelRatio(window.devicePixelRatio);
@@ -63,6 +64,8 @@ const meshes = await getMeshes();
 const camera = new THREE.PerspectiveCamera(75, canvas.width / canvas.height, 0.001, 1000);
 camera.position.z = 3;
 camera.lookAt(0, 0, 0);
+
+const controls = new OrbitControls(camera, canvas);
 
 const scene = new THREE.Scene();
 scene.add(camera);
