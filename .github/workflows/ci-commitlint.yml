@@ -26,7 +26,17 @@ jobs:
       - uses: pnpm/action-setup@v4
         name: Install pnpm
         with:
-          version: 9
+          version: 10
+
+      - uses: actions/setup-node@v3
+        name: Setup Node.js
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Prepare prerelease semantic
+        if: github.ref != 'refs/heads/main'
+        run: mv .releaserc.prerelease.yaml .releaserc.yaml
 
       - name: Install dependencies
         # If we don't do this, commitlint throws

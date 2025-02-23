@@ -1,36 +1,47 @@
 {
-  "name": "particles-engine",
+  "name": "@polarfront-lab/ionian",
   "version": "0.0.0",
-  "description": "ThreeJS Particles Simulation",
-  "main": "./dist/index.js",
-  "module": "./dist/index.mjs",
-  "types": "./dist/index.d.ts",
+  "description": "ThreeJS Collection Set",
+  "main": "dist/ionian.js",
+  "types": "dist/index.d.ts",
   "files": [
     "dist"
   ],
+  "type": "module",
   "scripts": {
-    "build": "tsup",
+    "dev": "tsc && vite --watch",
+    "start": "vite --host --open",
+    "build": "tsc && vite build",
+    "build:types": "dts-bundle-generator --config ./dts-bundle-generator.config.ts",
     "test": "jest",
     "prepare": "husky",
-    "fmt": "prettier --write --list-different ."
+    "lint:scripts": "eslint ./src --ext .ts",
+    "fmt": "prettier --write --list-different  ./src/**/*.{ts,tsx}"
   },
   "release": "semantic-release",
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/polarfront-lab/particles-engine.git"
+    "url": "git+https://github.com/polarfront-lab/ionian.git"
   },
   "keywords": [
     "threejs",
     "particles",
     "simulation"
   ],
-  "author": "state303",
+  "author": "Seunghyun Bae <state303@dsub.io> (https://echovisionlab.com)",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/polarfront-lab/particles-engine/issues"
+    "url": "https://github.com/polarfront-lab/ionian/issues"
   },
-  "homepage": "https://github.com/polarfront-lab/particles-engine#readme",
+  "homepage": "https://github.com/polarfront-lab/ionian#readme",
   "dependencies": {
+    "comlink": "^4.4.2",
+    "generic-pool": "^3.9.0",
+    "mitt": "^3.0.1",
     "three": "^0.173.0",
     "three-stdlib": "^2.35.13"
   },
@@ -40,14 +51,38 @@
     "@commitlint/config-conventional": "^19.7.1",
     "@ianvs/prettier-plugin-sort-imports": "^4.4.1",
     "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/commit-analyzer": "^13.0.1",
     "@semantic-release/exec": "^7.0.3",
+    "@semantic-release/git": "^10.0.1",
+    "@semantic-release/github": "^11.0.1",
+    "@semantic-release/release-notes-generator": "^14.0.3",
     "@types/jest": "^29.5.14",
+    "@types/node": "^22.13.4",
+    "@types/stats.js": "^0.17.3",
     "@types/three": "^0.173.0",
+    "@typescript-eslint/eslint-plugin": "^8.24.0",
+    "dts-bundle-generator": "^9.5.1",
+    "eslint": "^9.20.1",
+    "eslint-config-prettier": "^10.0.1",
+    "eslint-plugin-prettier": "^5.2.3",
     "husky": "^9.1.7",
     "jest": "^29.7.0",
+    "lil-gui": "^0.20.0",
+    "stats.js": "^0.17.0",
+    "terser": "^5.39.0",
     "ts-jest": "^29.2.5",
     "ts-node": "^10.9.2",
-    "tsup": "^8.3.6",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "vite": "^6.1.0",
+    "vite-plugin-dts": "^4.5.0",
+    "vite-plugin-node-polyfills": "^0.23.0"
+  },
+  "pnpm": {
+    "ignoredBuiltDependencies": [
+      "esbuild"
+    ],
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
   }
 }

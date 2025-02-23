@@ -10,4 +10,4 @@
 /coverage.data
 
 # pnpm
-pnpm-lock.yaml
+.env
