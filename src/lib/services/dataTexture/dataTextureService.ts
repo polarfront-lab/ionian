@@ -1,8 +1,8 @@
 import { DefaultEventEmitter } from '@/lib/events/defaultEventEmitter';
-import pool from '@/lib/services/dataTexture/worker/workerPool';
 import { MeshData, ServiceState } from '@/lib/types';
 import { createDataTexture } from '@/lib/utils';
 import * as THREE from 'three';
+import { MeshSurfaceSampler } from 'three/examples/jsm/math/MeshSurfaceSampler.js';
 
 /**
  * DataTextureManager is responsible for managing data textures used for mesh sampling.
@@ -43,16 +43,10 @@ export class DataTextureService {
     }
 
     const meshData = parseMeshData(asset);
-    const worker = await pool.acquire();
-
-    try {
-      const array = await worker.sampleMesh(meshData, this.textureSize);
-      const dataTexture = createDataTexture(array, this.textureSize);
-      dataTexture.name = asset.name;
-      return dataTexture;
-    } finally {
-      await pool.release(worker);
-    }
+    const array = sampleMesh(meshData, this.textureSize);
+    const dataTexture = createDataTexture(array, this.textureSize);
+    dataTexture.name = asset.name;
+    return dataTexture;
   }
 
   async dispose() {
@@ -76,4 +70,32 @@ function parseMeshData(mesh: THREE.Mesh): MeshData {
     normal: (mesh.geometry.attributes.normal as THREE.BufferAttribute)?.array,
     scale: { x: mesh.scale.x, y: mesh.scale.y, z: mesh.scale.z },
   };
+}
+
+function sampleMesh(meshData: MeshData, size: number): Float32Array {
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(meshData.position), 3));
+  if (meshData.normal) {
+    geometry.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(meshData.normal), 3));
+  }
+  const material = new THREE.MeshBasicMaterial();
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.scale.set(meshData.scale.x, meshData.scale.y, meshData.scale.z);
+
+  const sampler = new MeshSurfaceSampler(mesh).build();
+  const data = new Float32Array(size * size * 4);
+  const position = new THREE.Vector3();
+
+  for (let i = 0; i < size; i++) {
+    for (let j = 0; j < size; j++) {
+      const index = i * size + j;
+      sampler.sample(position);
+      data[4 * index] = position.x * meshData.scale.x;
+      data[4 * index + 1] = position.y * meshData.scale.y;
+      data[4 * index + 2] = position.z * meshData.scale.z;
+      data[4 * index + 3] = (Math.random() - 0.5) * 0.01;
+    }
+  }
+
+  return data;
 }
