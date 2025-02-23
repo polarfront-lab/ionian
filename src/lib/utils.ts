@@ -1,4 +1,3 @@
-import { AssetEntry, Assets } from '@/lib/types';
 import * as THREE from 'three';
 
 /**
@@ -49,45 +48,13 @@ export function createSpherePoints(size: number) {
   return createDataTexture(data, size);
 }
 
-/**
- * Disposes of an object if it's disposable.
- * @param object - The object to dispose.
- */
-export function disposeIfPossible(object: unknown) {
-  if (typeof object === 'object' && object !== null && 'dispose' in object && typeof object['dispose'] === 'function') {
-    object.dispose();
+export function disposeMesh(mesh: THREE.Mesh) {
+  mesh.geometry.dispose();
+  if (mesh.material instanceof THREE.Material) {
+    mesh.material.dispose();
+  } else {
+    mesh.material.forEach((material) => material.dispose());
   }
-}
-
-/**
- * Disposes of assets.
- * @param assets - The assets to dispose.
- */
-export function disposeAssets<T>(assets: Assets<T>) {
-  assets.forEach((textures) => {
-    textures.forEach((texture) => {
-      disposeIfPossible(texture);
-    });
-    textures.clear();
-  });
-  assets.clear();
-}
-
-/**
- * Creates a copy of an AssetEntry or an array of AssetEntries.
- * @param source - The source to copy from.
- * @returns A map containing the copied entries.
- */
-export function copyOf<T>(source?: AssetEntry<T> | AssetEntry<T>[]): Map<string, T> {
-  const map = new Map<string, T>();
-  if (source) {
-    if (Array.isArray(source)) {
-      source.forEach(({ id, item }) => map.set(id, item));
-    } else {
-      map.set(source.id, source.item);
-    }
-  }
-  return map;
 }
 
 export function clamp(value: number, min: number, max: number): number {

@@ -3,12 +3,12 @@ import { DefaultEventEmitter } from '@/lib/events/defaultEventEmitter';
 import { DataTextureService } from '@/lib/services/dataTexture/dataTextureService';
 import { InstancedMeshManager } from '@/lib/services/instancedmesh/instancedMeshManager';
 import { IntersectionService } from '@/lib/services/intersection/intersectionService';
-import { MatcapService } from '@/lib/services/matcap/matcapService';
 import { SimulationRendererService } from '@/lib/services/simulation/simulationRendererService';
 import { TransitionService } from '@/lib/services/transition/transitionService';
-import { AssetEntry, EasingFunction, ServiceState, ServiceType, TransitionType } from '@/lib/types';
+import { EasingFunction, ServiceState, ServiceType, TransitionType } from '@/lib/types';
 import { EngineState } from '@/lib/types/state';
 import * as THREE from 'three';
+import { AssetService } from '@/lib/services/assets/assetService';
 
 /**
  * Parameters for creating a ParticlesEngine instance.
@@ -17,8 +17,6 @@ type ParticlesEngineParameters = {
   textureSize: number;
   scene: THREE.Scene;
   renderer: THREE.WebGLRenderer;
-  meshes?: AssetEntry<THREE.Mesh>[];
-  matcaps?: AssetEntry<THREE.Texture>[];
   camera?: THREE.Camera;
 };
 
@@ -36,8 +34,8 @@ export class ParticlesEngine {
   private serviceStates: ServiceStates;
 
   // assets
+  private assetService: AssetService;
   private dataTextureManager: DataTextureService;
-  private matcapService: MatcapService;
   private instancedMeshManager: InstancedMeshManager;
 
   private transitionService: TransitionService;
@@ -57,9 +55,10 @@ export class ParticlesEngine {
     this.scene = params.scene;
     this.renderer = params.renderer;
     this.engineState = this.initialEngineState(params.textureSize);
+
+    this.assetService = new AssetService(this.eventEmitter);
     this.transitionService = new TransitionService(this.eventEmitter);
-    this.dataTextureManager = new DataTextureService(this.eventEmitter, params.textureSize, params.meshes);
-    this.matcapService = new MatcapService(this.eventEmitter, params.matcaps);
+    this.dataTextureManager = new DataTextureService(this.eventEmitter, params.textureSize);
     this.simulationRendererService = new SimulationRendererService(this.eventEmitter, params.textureSize, this.renderer);
     this.instancedMeshManager = new InstancedMeshManager(params.textureSize);
     this.instancedMeshManager.useMatcapMaterial();
@@ -87,25 +86,38 @@ export class ParticlesEngine {
 
   setOriginDataTexture(meshID: string, override: boolean = false) {
     if (override) this.eventEmitter.emit('transitionCancelled', { type: 'data-texture' });
-    this.dataTextureManager.getDataTexture(meshID).then((texture) => {
+
+    const mesh = this.assetService.getMesh(meshID);
+
+    if (!mesh) {
+      this.eventEmitter.emit('invalidRequest', { message: `Mesh with id "${meshID}" does not exist` });
+      return;
+    }
+
+    this.dataTextureManager.getDataTexture(mesh).then((dataTexture) => {
       this.engineState.originMeshID = meshID;
-      this.simulationRendererService.setOriginDataTexture({
-        dataTexture: texture,
-        textureSize: this.engineState.textureSize,
-      });
-      this.intersectionService.setOriginGeometry(this.dataTextureManager.getMesh(meshID)!);
+      this.simulationRendererService.setOriginDataTexture({ dataTexture, textureSize: this.engineState.textureSize });
+      this.intersectionService.setOriginGeometry(mesh);
     });
   }
 
   setDestinationDataTexture(meshID: string, override: boolean = false) {
     if (override) this.eventEmitter.emit('transitionCancelled', { type: 'data-texture' });
-    this.dataTextureManager.getDataTexture(meshID).then((texture) => {
+
+    const mesh = this.assetService.getMesh(meshID);
+
+    if (!mesh) {
+      this.eventEmitter.emit('invalidRequest', { message: `Mesh with id "${meshID}" does not exist` });
+      return;
+    }
+
+    this.dataTextureManager.getDataTexture(mesh).then((texture) => {
       this.engineState.destinationMeshID = meshID;
       this.simulationRendererService.setDestinationDataTexture({
         dataTexture: texture,
         textureSize: this.engineState.textureSize,
       });
-      this.intersectionService.setDestinationGeometry(this.dataTextureManager.getMesh(meshID)!);
+      this.intersectionService.setDestinationGeometry(mesh);
     });
   }
 
@@ -119,13 +131,13 @@ export class ParticlesEngine {
   setOriginMatcap(matcapID: string, override: boolean = false) {
     if (override) this.eventEmitter.emit('transitionCancelled', { type: 'matcap' });
     this.engineState.originMatcapID = matcapID;
-    this.instancedMeshManager.setOriginMatcap(this.matcapService.getMatcap(matcapID));
+    this.instancedMeshManager.setOriginMatcap(this.assetService.getMatcap(matcapID));
   }
 
   setDestinationMatcap(matcapID: string, override: boolean = false) {
     if (override) this.eventEmitter.emit('transitionCancelled', { type: 'matcap' });
     this.engineState.destinationMatcapID = matcapID;
-    this.instancedMeshManager.setDestinationMatcap(this.matcapService.getMatcap(matcapID));
+    this.instancedMeshManager.setDestinationMatcap(this.assetService.getMatcap(matcapID));
   }
 
   setMatcapProgress(progress: number, override: boolean = false) {
@@ -140,11 +152,25 @@ export class ParticlesEngine {
     this.simulationRendererService.setTextureSize(size);
     this.instancedMeshManager.resize(size);
 
+    const originMesh = this.assetService.getMesh(this.engineState.originMeshID);
+    if (!originMesh) {
+      this.eventEmitter.emit('invalidRequest', { message: `Mesh with id "${this.engineState.originMeshID}" does not exist` });
+      return;
+    }
+
+    const destinationMesh = this.assetService.getMesh(this.engineState.destinationMeshID);
+    if (!destinationMesh) {
+      this.eventEmitter.emit('invalidRequest', { message: `Mesh with id "${this.engineState.destinationMeshID}" does not exist` });
+      return;
+    }
+
     this.dataTextureManager
-      .getDataTexture(this.engineState.originMeshID)
+      .getDataTexture(originMesh)
       .then((texture) => this.simulationRendererService.setOriginDataTexture({ dataTexture: texture, textureSize: size }));
 
-    this.dataTextureManager.getDataTexture(this.engineState.destinationMeshID).then((texture) =>
+    this.dataTextureManager
+      .getDataTexture(destinationMesh)
+      .then((texture) =>
       this.simulationRendererService.setDestinationDataTexture({
         dataTexture: texture,
         textureSize: size,
@@ -155,10 +181,26 @@ export class ParticlesEngine {
     this.simulationRendererService.setVelocityTractionForce(this.engineState.velocityTractionForce);
     this.simulationRendererService.setPositionalTractionForce(this.engineState.positionalTractionForce);
 
-    this.instancedMeshManager.setOriginMatcap(this.matcapService.getMatcap(this.engineState.originMatcapID));
-    this.instancedMeshManager.setDestinationMatcap(this.matcapService.getMatcap(this.engineState.destinationMatcapID));
+    this.instancedMeshManager.setOriginMatcap(this.assetService.getMatcap(this.engineState.originMatcapID));
+    this.instancedMeshManager.setDestinationMatcap(this.assetService.getMatcap(this.engineState.destinationMatcapID));
     this.instancedMeshManager.setProgress(this.engineState.matcapTransitionProgress);
     this.instancedMeshManager.setGeometrySize(this.engineState.instanceGeometryScale);
+  }
+
+  registerMesh(id: string, mesh: THREE.Mesh) {
+    this.assetService.register(id, mesh);
+  }
+
+  registerMatcap(id: string, matcap: THREE.Texture) {
+    this.assetService.register(id, matcap);
+  }
+
+  async fetchAndRegisterMesh(id: string, url: string) {
+    return await this.assetService.loadMeshAsync(id, url);
+  }
+
+  async fetchAndRegisterMatcap(id: string, url: string) {
+    return await this.assetService.loadTextureAsync(id, url);
   }
 
   setPointerPosition(position: THREE.Vector2Like) {
@@ -229,15 +271,23 @@ export class ParticlesEngine {
     return this.instancedMeshManager.getMesh();
   }
 
+  getMeshIDs() {
+    return this.assetService.getMeshIDs();
+  }
+
+  getMatcapIDs() {
+    return this.assetService.getTextureIDs();
+  }
+
   /**
    * Disposes the resources used by the engine.
    */
   dispose() {
     this.scene.remove(this.instancedMeshManager.getMesh());
-    this.matcapService.dispose();
     this.simulationRendererService.dispose();
     this.instancedMeshManager.dispose();
     this.intersectionService.dispose();
+    this.assetService.dispose();
     this.dataTextureManager.dispose().then(() => console.log('engine disposed'));
   }
 
@@ -264,6 +314,7 @@ export class ParticlesEngine {
       'instanced-mesh': 'created',
       matcap: 'created',
       simulation: 'created',
+      asset: 'created'
     };
   }
 
