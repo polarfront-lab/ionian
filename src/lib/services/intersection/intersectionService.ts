@@ -8,8 +8,6 @@ import * as THREE from 'three';
 export class IntersectionService {
   private raycaster = new THREE.Raycaster();
   private mousePosition = new THREE.Vector2();
-  private mouseEntered = false;
-  private mousePositionChanged = false;
 
   private camera?: THREE.Camera;
   private originGeometry?: THREE.BufferGeometry;
@@ -100,16 +98,7 @@ export class IntersectionService {
    * @param mousePosition
    */
   setMousePosition(mousePosition?: THREE.Vector2Like) {
-    if (mousePosition) {
-      if (!this.mousePosition.equals(mousePosition)) {
-        this.mousePosition.copy(mousePosition);
-        this.mousePositionChanged = true;
-      }
-      this.mouseEntered = true;
-    } else {
-      this.mouseEntered = false;
-      this.mousePositionChanged = false;
-    }
+    if (mousePosition) this.mousePosition.copy(mousePosition);
   }
 
   /**
@@ -120,21 +109,15 @@ export class IntersectionService {
     this.updateIntersectionMesh(instancedMesh);
 
     if (!this.camera) return;
-    if (!this.mouseEntered) return;
-
     if (this.geometryNeedsUpdate) {
       this.geometryNeedsUpdate = false;
       this.blendedGeometry = this.getBlendedGeometry();
-      this.mousePositionChanged = true;
     }
 
-    if (this.mousePositionChanged) {
-      this.mousePositionChanged = false;
-      if (this.blendedGeometry) {
-        this.intersection = this.getFirstIntersection(this.camera, instancedMesh);
-      } else {
-        this.intersection = undefined;
-      }
+    if (this.blendedGeometry) {
+      this.intersection = this.getFirstIntersection(this.camera, instancedMesh);
+    } else {
+      this.intersection = undefined;
     }
 
     if (this.intersection) {
