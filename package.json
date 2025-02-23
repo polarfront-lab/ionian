@@ -38,8 +38,6 @@
   },
   "homepage": "https://github.com/polarfront-lab/ionian#readme",
   "dependencies": {
-    "comlink": "^4.4.2",
-    "generic-pool": "^3.9.0",
     "mitt": "^3.0.1",
     "three": "^0.173.0",
     "three-stdlib": "^2.35.14"
