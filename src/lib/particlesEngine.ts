@@ -1,5 +1,6 @@
 import { linear } from '@/lib/easing';
 import { DefaultEventEmitter } from '@/lib/events/defaultEventEmitter';
+import { AssetService } from '@/lib/services/assets/assetService';
 import { DataTextureService } from '@/lib/services/dataTexture/dataTextureService';
 import { InstancedMeshManager } from '@/lib/services/instancedmesh/instancedMeshManager';
 import { IntersectionService } from '@/lib/services/intersection/intersectionService';
@@ -8,7 +9,6 @@ import { TransitionService } from '@/lib/services/transition/transitionService';
 import { EasingFunction, ServiceState, ServiceType, TransitionType } from '@/lib/types';
 import { EngineState } from '@/lib/types/state';
 import * as THREE from 'three';
-import { AssetService } from '@/lib/services/assets/assetService';
 
 /**
  * Parameters for creating a ParticlesEngine instance.
@@ -168,9 +168,7 @@ export class ParticlesEngine {
       .getDataTexture(originMesh)
       .then((texture) => this.simulationRendererService.setOriginDataTexture({ dataTexture: texture, textureSize: size }));
 
-    this.dataTextureManager
-      .getDataTexture(destinationMesh)
-      .then((texture) =>
+    this.dataTextureManager.getDataTexture(destinationMesh).then((texture) =>
       this.simulationRendererService.setDestinationDataTexture({
         dataTexture: texture,
         textureSize: size,
@@ -313,7 +311,7 @@ export class ParticlesEngine {
       'instanced-mesh': 'created',
       matcap: 'created',
       simulation: 'created',
-      asset: 'created'
+      asset: 'created',
     };
   }
 
