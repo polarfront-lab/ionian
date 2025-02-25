@@ -1,4 +1,5 @@
 import { ParticlesEngine } from '@/lib/particlesEngine';
+import gui from 'lil-gui';
 import Stats from 'stats.js';
 import * as THREE from 'three';
 import { OrbitControls } from 'three-stdlib';
@@ -11,13 +12,12 @@ const fetchResourceUrls = async (key: string) => {
   return await fetch(`/api/items/${key}`, fetchOptions)
     .then((resp) => resp.json())
     .then((obj) => obj.data)
-    .then(data => data as CMSEntry[]);
-}
+    .then((data) => data as CMSEntry[]);
+};
 
 const canvas = document.getElementById('canvas') as HTMLCanvasElement;
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
-
 
 const renderer = new THREE.WebGLRenderer({ canvas });
 renderer.setSize(canvas.width, canvas.height);
@@ -39,22 +39,33 @@ const engine = new ParticlesEngine({
   camera,
 });
 
-fetchResourceUrls('meshes').then(entries => {
-  const promises = entries.map(entry => engine.fetchAndRegisterMesh(entry.name, `/api/assets/${entry.file}`));
-  Promise.all(promises).then(result => {
+const GUI = new gui();
+const matcapFolder = GUI.addFolder('matcap');
+const matcapParams = {
+  originColor: '0xffffff' as THREE.ColorRepresentation,
+  destinationColor: '0xffffff' as THREE.ColorRepresentation,
+  progress: 0,
+};
+
+matcapFolder.addColor(matcapParams, 'originColor').onChange((color: THREE.ColorRepresentation) => engine.setOriginColor(color));
+matcapFolder.addColor(matcapParams, 'destinationColor').onChange((color: THREE.ColorRepresentation) => engine.setDestinationColor(color));
+matcapFolder.add(matcapParams, 'progress', 0, 1, 0.01).onChange((progress: number) => engine.setMatcapProgress(progress));
+
+fetchResourceUrls('meshes').then((entries) => {
+  const promises = entries.map((entry) => engine.fetchAndRegisterMesh(entry.name, `/api/assets/${entry.file}`));
+  Promise.all(promises).then((result) => {
     const first = result[0];
     if (first) engine.setOriginDataTexture(first.name);
-  })
+  });
 });
 
-fetchResourceUrls('matcaps').then(entries => {
-  const promises = entries.map(entry => engine.fetchAndRegisterMatcap(entry.name, `/api/assets/${entry.file}`));
-  Promise.all(promises).then(result => {
-    const first = result[0];
-    if (first) engine.setOriginMatcap(first.name);
-  })
+fetchResourceUrls('matcaps').then((entries) => {
+  const promises = entries.map((entry) => engine.fetchAndRegisterMatcap(entry.name, `/api/assets/${entry.file}`));
+  Promise.all(promises).then((result) => {
+    const texture = result[4];
+    if (texture) engine.setOriginMatcap(texture.name);
+  });
 });
-
 
 const resizeHandler = () => {
   canvas.width = window.innerWidth;
@@ -81,6 +92,7 @@ window.addEventListener('resize', resizeHandler);
 window.addEventListener('onbeforeunload', () => {
   engine.dispose();
   renderer.dispose();
+  controls.dispose();
   window.removeEventListener('resize', resizeHandler);
   window.removeEventListener('mousemove', mouseEventHandler);
 });

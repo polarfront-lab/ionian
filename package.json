@@ -14,8 +14,7 @@
     "build": "tsc && vite build",
     "build:types": "dts-bundle-generator --config ./dts-bundle-generator.config.ts",
     "prepare": "husky",
-    "lint:scripts": "eslint ./src --ext .ts",
-    "fmt": "prettier --write --list-different  ./src/**/*.{ts,tsx}"
+    "fmt": "prettier --write --list-different  ./src"
   },
   "release": "semantic-release",
   "publishConfig": {

@@ -3,7 +3,7 @@ import { defineConfig, loadEnv, UserConfig } from 'vite';
 import dts from 'vite-plugin-dts';
 import { nodePolyfills } from 'vite-plugin-node-polyfills';
 
-export default defineConfig(({ command, mode }): UserConfig => {
+export default defineConfig(({ mode }): UserConfig => {
   const env = loadEnv(mode, process.cwd(), '');
 
   return {
@@ -19,6 +19,11 @@ export default defineConfig(({ command, mode }): UserConfig => {
         '/api': {
           target: env.VITE_CMS_HOST,
           changeOrigin: true,
+          configure: (proxy) => {
+            proxy.on('proxyReq', (proxyReq) => {
+              proxyReq.setHeader('Authorization', `Bearer ${env.VITE_CMS_TOKEN}`);
+            });
+          },
           rewrite: (path) => path.replace(/^\/api/, ''),
         },
       },
