@@ -329,4 +329,12 @@ export class ParticlesEngine {
   private handleInteractionPositionUpdated({ position }: { position: THREE.Vector4Like }) {
     this.simulationRendererService.setInteractionPosition(position);
   }
+
+  setOriginColor(color: THREE.ColorRepresentation) {
+    this.instancedMeshManager.setOriginColor(color);
+  }
+
+  setDestinationColor(color: THREE.ColorRepresentation) {
+    this.instancedMeshManager.setDestinationColor(color);
+  }
 }

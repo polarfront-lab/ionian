@@ -11,8 +11,10 @@ export class InstancedMeshManager {
   private mesh: THREE.InstancedMesh;
 
   private readonly matcapMaterial: THREE.ShaderMaterial;
-  private readonly fallbackMaterial: THREE.Material;
   private readonly fallbackGeometry: THREE.BufferGeometry;
+
+  private originColor: THREE.ColorRepresentation | null;
+  private destinationColor: THREE.ColorRepresentation | null;
 
   private materials: Map<string, THREE.Material>;
   private geometries: Map<string, THREE.BufferGeometry>;
@@ -31,6 +33,8 @@ export class InstancedMeshManager {
     this.uvRefsCache = new Map();
 
     this.previousScale = { x: 1, y: 1, z: 1 };
+    this.originColor = 'grey';
+    this.destinationColor = 'grey';
 
     this.matcapMaterial = new THREE.ShaderMaterial({
       uniforms: {
@@ -45,10 +49,11 @@ export class InstancedMeshManager {
       fragmentShader: instanceFragmentShader,
     });
 
-    this.fallbackMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
-    this.fallbackGeometry = new THREE.BoxGeometry(0.001, 0.001, 0.001);
+    this.setOriginColor(this.originColor);
+    this.setDestinationColor(this.destinationColor);
 
-    this.mesh = this.createInstancedMesh(initialSize, this.fallbackGeometry, this.fallbackMaterial);
+    this.fallbackGeometry = new THREE.BoxGeometry(0.001, 0.001, 0.001);
+    this.mesh = this.createInstancedMesh(initialSize, this.fallbackGeometry, this.matcapMaterial);
   }
 
   /**
@@ -246,6 +251,7 @@ export class InstancedMeshManager {
     this.uvRefsCache.set(size, attr);
     return attr;
   }
+
   /**
    * Creates a new instanced mesh.
    * @param size The size of the instanced mesh.
@@ -258,5 +264,41 @@ export class InstancedMeshManager {
     geometry.setAttribute('uvRef', this.getUVRefs(size));
     const count = size * size;
     return new THREE.InstancedMesh(geometry, material, count);
+  }
+
+  setOriginColor(color: THREE.ColorRepresentation) {
+    this.matcapMaterial.uniforms.uSourceMatcap.value = this.createSolidColorDataTexture(color);
+  }
+
+  setDestinationColor(color: THREE.ColorRepresentation) {
+    this.matcapMaterial.uniforms.uTargetMatcap.value = this.createSolidColorDataTexture(color);
+  }
+
+  createSolidColorDataTexture(color: THREE.ColorRepresentation, size: number = 16): THREE.DataTexture {
+    const col = new THREE.Color(color);
+    const width = size;
+    const height = size;
+    const data = new Uint8Array(width * height * 4); // RGBA
+
+    const r = Math.floor(col.r * 255);
+    const g = Math.floor(col.g * 255);
+    const b = Math.floor(col.b * 255);
+
+    for (let i = 0; i < width * height; i++) {
+      const index = i * 4;
+      data[index] = r;
+      data[index + 1] = g;
+      data[index + 2] = b;
+      data[index + 3] = 255; // Alpha
+    }
+
+    const texture = new THREE.DataTexture(data, width, height, THREE.RGBAFormat);
+    texture.type = THREE.UnsignedByteType;
+    texture.wrapS = THREE.RepeatWrapping; // Or ClampToEdgeWrapping
+    texture.wrapT = THREE.RepeatWrapping; // Or ClampToEdgeWrapping
+    texture.minFilter = THREE.NearestFilter; // Ensure sharp color
+    texture.magFilter = THREE.NearestFilter;
+    texture.needsUpdate = true;
+    return texture;
   }
 }
