@@ -1,4 +1,4 @@
-import { TransitionType } from '@/types';
+import { TransitionType } from '@/lib/types';
 
 export type TransitionEvents = {
   /** transition started */
