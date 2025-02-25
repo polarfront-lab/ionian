@@ -3,6 +3,15 @@ import { Vector3Like } from 'three';
 import instanceFragmentShader from './shaders/instanceFragmentShader';
 import instanceVertexShader from './shaders/instanceVertexShader';
 
+type MaterialUniforms = {
+  uTime: { value: number };
+  uProgress: { value: number };
+  uTexture: { value: THREE.DataTexture | null };
+  uVelocity: { value: THREE.DataTexture | null };
+  uOriginTexture: { value: THREE.Texture | null };
+  uDestinationTexture: { value: THREE.Texture | null };
+};
+
 /**
  * InstancedMeshManager is responsible for managing instanced meshes.
  */
@@ -12,6 +21,8 @@ export class InstancedMeshManager {
 
   private readonly matcapMaterial: THREE.ShaderMaterial;
   private readonly fallbackGeometry: THREE.BufferGeometry;
+
+  private uniforms: MaterialUniforms;
 
   private originColor: THREE.ColorRepresentation | null;
   private destinationColor: THREE.ColorRepresentation | null;
@@ -36,15 +47,17 @@ export class InstancedMeshManager {
     this.originColor = 'grey';
     this.destinationColor = 'grey';
 
+    this.uniforms = {
+      uTime: { value: 0 },
+      uProgress: { value: 0 },
+      uTexture: { value: null },
+      uVelocity: { value: null },
+      uOriginTexture: { value: null },
+      uDestinationTexture: { value: null },
+    };
+
     this.matcapMaterial = new THREE.ShaderMaterial({
-      uniforms: {
-        uTime: { value: 0 },
-        uProgress: { value: 0 },
-        uTexture: { value: null },
-        uVelocity: { value: null },
-        uSourceMatcap: { value: null },
-        uTargetMatcap: { value: null },
-      },
+      uniforms: this.uniforms,
       vertexShader: instanceVertexShader,
       fragmentShader: instanceFragmentShader,
     });
@@ -80,11 +93,11 @@ export class InstancedMeshManager {
    * @param matcap The matcap texture to set.
    */
   setOriginMatcap(matcap: THREE.Texture) {
-    this.matcapMaterial.uniforms.uSourceMatcap.value = matcap;
+    this.matcapMaterial.uniforms.uOriginTexture.value = matcap;
   }
 
   setDestinationMatcap(matcap: THREE.Texture) {
-    this.matcapMaterial.uniforms.uTargetMatcap.value = matcap;
+    this.matcapMaterial.uniforms.uDestinationTexture.value = matcap;
   }
 
   setProgress(float: number) {
@@ -267,11 +280,11 @@ export class InstancedMeshManager {
   }
 
   setOriginColor(color: THREE.ColorRepresentation) {
-    this.matcapMaterial.uniforms.uSourceMatcap.value = this.createSolidColorDataTexture(color);
+    this.uniforms.uOriginTexture.value = this.createSolidColorDataTexture(color);
   }
 
   setDestinationColor(color: THREE.ColorRepresentation) {
-    this.matcapMaterial.uniforms.uTargetMatcap.value = this.createSolidColorDataTexture(color);
+    this.uniforms.uDestinationTexture.value = this.createSolidColorDataTexture(color);
   }
 
   createSolidColorDataTexture(color: THREE.ColorRepresentation, size: number = 16): THREE.DataTexture {
