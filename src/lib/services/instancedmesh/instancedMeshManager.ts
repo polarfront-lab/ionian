@@ -22,12 +22,11 @@ export class InstancedMeshManager {
   private readonly matcapMaterial: THREE.ShaderMaterial;
   private readonly fallbackGeometry: THREE.BufferGeometry;
 
-  private uniforms: MaterialUniforms;
+  private readonly uniforms: MaterialUniforms;
 
   private originColor: THREE.ColorRepresentation | null;
   private destinationColor: THREE.ColorRepresentation | null;
 
-  private materials: Map<string, THREE.Material>;
   private geometries: Map<string, THREE.BufferGeometry>;
   private uvRefsCache: Map<number, THREE.InstancedBufferAttribute>;
 
@@ -39,7 +38,6 @@ export class InstancedMeshManager {
    */
   constructor(initialSize: number) {
     this.size = initialSize;
-    this.materials = new Map();
     this.geometries = new Map();
     this.uvRefsCache = new Map();
 
@@ -93,10 +91,12 @@ export class InstancedMeshManager {
    * @param matcap The matcap texture to set.
    */
   setOriginMatcap(matcap: THREE.Texture) {
+    this.disposeSolidColorOriginTexture();
     this.matcapMaterial.uniforms.uOriginTexture.value = matcap;
   }
 
   setDestinationMatcap(matcap: THREE.Texture) {
+    this.disposeSolidColorDestinationTexture();
     this.matcapMaterial.uniforms.uDestinationTexture.value = matcap;
   }
 
@@ -117,17 +117,6 @@ export class InstancedMeshManager {
    */
   useMatcapMaterial() {
     this.mesh.material = this.matcapMaterial;
-  }
-
-  /**
-   * Use the specified material for the instanced mesh.
-   * @param id The ID of the material to use.
-   */
-  useMaterial(id: string) {
-    const material = this.materials.get(id);
-    if (material) {
-      this.mesh.material = material;
-    }
   }
 
   /**
@@ -182,11 +171,12 @@ export class InstancedMeshManager {
     this.mesh.dispose();
 
     this.geometries.forEach((geometry) => geometry.dispose());
-    this.materials.forEach((material) => material.dispose());
+    this.disposeSolidColorOriginTexture();
+    this.disposeSolidColorDestinationTexture();
+    this.matcapMaterial.dispose();
 
     this.uvRefsCache.clear();
     this.geometries.clear();
-    this.materials.clear();
   }
 
   /**
@@ -204,7 +194,7 @@ export class InstancedMeshManager {
     }
 
     // finally, we are attaching uvRefs.
-    const uvRefs = this.getUVRefs(this.size);
+    const uvRefs = this.createUVRefs(this.size);
     geometry.setAttribute('uvRef', uvRefs);
 
     this.geometries.set(id, geometry);
@@ -216,25 +206,16 @@ export class InstancedMeshManager {
     previous?.dispose();
   }
 
-  /**
-   * Registers a material.
-   * @param id The ID of the material to register.
-   * @param material The material to register.
-   */
-  registerMaterial(id: string, material: THREE.Material) {
-    const previous = this.materials.get(id);
-    if (previous) {
-      if (previous === material) {
-        return;
-      }
-    }
+  setOriginColor(color: THREE.ColorRepresentation) {
+    this.disposeSolidColorOriginTexture();
+    this.originColor = color;
+    this.uniforms.uOriginTexture.value = this.createSolidColorDataTexture(color);
+  }
 
-    if (this.mesh.material === previous) {
-      this.mesh.material = material;
-    }
-
-    this.materials.set(id, material);
-    previous?.dispose();
+  setDestinationColor(color: THREE.ColorRepresentation) {
+    this.disposeSolidColorDestinationTexture();
+    this.destinationColor = color;
+    this.uniforms.uDestinationTexture.value = this.createSolidColorDataTexture(color);
   }
 
   /**
@@ -242,7 +223,7 @@ export class InstancedMeshManager {
    * @param size The size for which to generate UV references.
    * @returns The UV references.
    */
-  getUVRefs(size: number) {
+  private createUVRefs(size: number) {
     const cached = this.uvRefsCache.get(size);
 
     if (cached) {
@@ -274,20 +255,12 @@ export class InstancedMeshManager {
    */
   private createInstancedMesh(size: number, geometry: THREE.BufferGeometry, material: THREE.Material | THREE.Material[]) {
     geometry = geometry || this.fallbackGeometry;
-    geometry.setAttribute('uvRef', this.getUVRefs(size));
+    geometry.setAttribute('uvRef', this.createUVRefs(size));
     const count = size * size;
     return new THREE.InstancedMesh(geometry, material, count);
   }
 
-  setOriginColor(color: THREE.ColorRepresentation) {
-    this.uniforms.uOriginTexture.value = this.createSolidColorDataTexture(color);
-  }
-
-  setDestinationColor(color: THREE.ColorRepresentation) {
-    this.uniforms.uDestinationTexture.value = this.createSolidColorDataTexture(color);
-  }
-
-  createSolidColorDataTexture(color: THREE.ColorRepresentation, size: number = 16): THREE.DataTexture {
+  private createSolidColorDataTexture(color: THREE.ColorRepresentation, size: number = 16): THREE.DataTexture {
     const col = new THREE.Color(color);
     const width = size;
     const height = size;
@@ -313,5 +286,23 @@ export class InstancedMeshManager {
     texture.magFilter = THREE.NearestFilter;
     texture.needsUpdate = true;
     return texture;
+  }
+
+  private disposeSolidColorOriginTexture() {
+    if (this.originColor) {
+      this.originColor = null;
+      if (this.uniforms.uOriginTexture.value) {
+        this.uniforms.uOriginTexture.value.dispose();
+      }
+    }
+  }
+
+  private disposeSolidColorDestinationTexture() {
+    if (this.destinationColor) {
+      this.destinationColor = null;
+      if (this.uniforms.uDestinationTexture.value) {
+        this.uniforms.uDestinationTexture.value.dispose();
+      }
+    }
   }
 }
