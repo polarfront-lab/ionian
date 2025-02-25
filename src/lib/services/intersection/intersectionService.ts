@@ -1,5 +1,4 @@
 import { DefaultEventEmitter, EngineEventEmitter, Events } from '@/lib/events';
-
 import * as THREE from 'three';
 
 /**
@@ -155,7 +154,7 @@ export class IntersectionService {
 
     const intersection = this.raycaster.intersectObject(this.intersectionMesh, false)[0];
     if (intersection) {
-      const worldPoint = intersection.point.clone()
+      const worldPoint = intersection.point.clone();
       const localPoint = instancedMesh.worldToLocal(worldPoint);
       return new THREE.Vector4(localPoint.x, localPoint.y, localPoint.z, 1);
     }
@@ -188,7 +187,6 @@ export class IntersectionService {
     const blendedPositions = new Float32Array(originPositions.length);
 
     for (let i = 0; i < originPositions.length; i += 3) {
-
       const originVert = new THREE.Vector3(originPositions[i], originPositions[i + 1], originPositions[i + 2]);
       const destinationVert = new THREE.Vector3(destinationPositions[i], destinationPositions[i + 1], destinationPositions[i + 2]);
       const blendedVert = new THREE.Vector3().lerpVectors(originVert, destinationVert, progress);
@@ -196,7 +194,6 @@ export class IntersectionService {
       blendedPositions[i] = blendedVert.x;
       blendedPositions[i + 1] = blendedVert.y;
       blendedPositions[i + 2] = blendedVert.z;
-
     }
 
     blended.setAttribute('position', new THREE.BufferAttribute(blendedPositions, 3));

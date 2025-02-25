@@ -1,8 +1,8 @@
-import * as THREE from 'three';
 import { DefaultEventEmitter } from '@/lib/events';
 import { ServiceState } from '@/lib/types';
-import { DRACOLoader, GLTFLoader } from 'three-stdlib';
 import { disposeMesh } from '@/lib/utils';
+import * as THREE from 'three';
+import { DRACOLoader, GLTFLoader } from 'three-stdlib';
 
 export class AssetService {
   private serviceState: ServiceState = 'created';

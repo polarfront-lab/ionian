@@ -11,13 +11,12 @@ const fetchResourceUrls = async (key: string) => {
   return await fetch(`/api/items/${key}`, fetchOptions)
     .then((resp) => resp.json())
     .then((obj) => obj.data)
-    .then(data => data as CMSEntry[]);
-}
+    .then((data) => data as CMSEntry[]);
+};
 
 const canvas = document.getElementById('canvas') as HTMLCanvasElement;
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
-
 
 const renderer = new THREE.WebGLRenderer({ canvas });
 renderer.setSize(canvas.width, canvas.height);
@@ -39,22 +38,21 @@ const engine = new ParticlesEngine({
   camera,
 });
 
-fetchResourceUrls('meshes').then(entries => {
-  const promises = entries.map(entry => engine.fetchAndRegisterMesh(entry.name, `/api/assets/${entry.file}`));
-  Promise.all(promises).then(result => {
+fetchResourceUrls('meshes').then((entries) => {
+  const promises = entries.map((entry) => engine.fetchAndRegisterMesh(entry.name, `/api/assets/${entry.file}`));
+  Promise.all(promises).then((result) => {
     const first = result[0];
     if (first) engine.setOriginDataTexture(first.name);
-  })
+  });
 });
 
-fetchResourceUrls('matcaps').then(entries => {
-  const promises = entries.map(entry => engine.fetchAndRegisterMatcap(entry.name, `/api/assets/${entry.file}`));
-  Promise.all(promises).then(result => {
+fetchResourceUrls('matcaps').then((entries) => {
+  const promises = entries.map((entry) => engine.fetchAndRegisterMatcap(entry.name, `/api/assets/${entry.file}`));
+  Promise.all(promises).then((result) => {
     const first = result[0];
     if (first) engine.setOriginMatcap(first.name);
-  })
+  });
 });
-
 
 const resizeHandler = () => {
   canvas.width = window.innerWidth;
