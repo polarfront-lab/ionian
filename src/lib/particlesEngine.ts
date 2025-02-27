@@ -119,7 +119,7 @@ export class ParticlesEngine {
       this.engineState.destinationMeshID = meshID;
       this.simulationRendererService.setDestinationDataTexture({
         dataTexture: texture,
-        textureSize: this.engineState.textureSize
+        textureSize: this.engineState.textureSize,
       });
       this.intersectionService.setDestinationGeometry(mesh);
     });
@@ -201,15 +201,15 @@ export class ParticlesEngine {
     this.dataTextureManager.getDataTexture(originMesh).then((texture) =>
       this.simulationRendererService.setOriginDataTexture({
         dataTexture: texture,
-        textureSize: size
-      })
+        textureSize: size,
+      }),
     );
 
     this.dataTextureManager.getDataTexture(destinationMesh).then((texture) =>
       this.simulationRendererService.setDestinationDataTexture({
         dataTexture: texture,
-        textureSize: size
-      })
+        textureSize: size,
+      }),
     );
 
     this.simulationRendererService.setDataTextureTransitionProgress(this.engineState.dataTextureTransitionProgress);
@@ -283,8 +283,8 @@ export class ParticlesEngine {
           this.setOriginDataTexture(originMeshID, override);
           this.setDestinationDataTexture(destinationMeshID, override);
           this.setDataTextureTransitionProgress(0);
-        }
-      }
+        },
+      },
     );
   }
 
@@ -293,7 +293,7 @@ export class ParticlesEngine {
     destinationMatcapID: string,
     easing: EasingFunction = linear,
     duration: number = 1000,
-    override: boolean = false
+    override: boolean = false,
   ) {
     this.transitionService.enqueue(
       'matcap',
@@ -303,8 +303,8 @@ export class ParticlesEngine {
           this.setOriginMatcap(originMatcapID, override);
           this.setDestinationMatcap(destinationMatcapID, override);
           this.setMatcapProgress(0);
-        }
-      }
+        },
+      },
     );
   }
 
@@ -315,7 +315,7 @@ export class ParticlesEngine {
       easing?: EasingFunction;
       duration?: number;
       override?: boolean;
-    }
+    },
   ) {
     const easing = options?.easing ?? linear;
     const duration = options?.duration ?? 1000;
@@ -332,8 +332,8 @@ export class ParticlesEngine {
           this.setOriginTexture(origin);
           this.setDestinationTexture(destination);
           this.setMatcapProgress(0);
-        }
-      }
+        },
+      },
     );
   }
 
@@ -351,6 +351,14 @@ export class ParticlesEngine {
 
   getMatcapIDs() {
     return this.assetService.getTextureIDs();
+  }
+
+  getMeshes() {
+    return this.assetService.getMeshes();
+  }
+
+  getTextures() {
+    return this.assetService.getTextures();
   }
 
   /**
@@ -379,7 +387,7 @@ export class ParticlesEngine {
       maxRepelDistance: 0.3,
       pointerPosition: { x: 0, y: 0 },
       instanceGeometryScale: { x: 1, y: 1, z: 1 },
-      useIntersect: params.useIntersection ?? true
+      useIntersect: params.useIntersection ?? true,
     };
   }
 
@@ -389,7 +397,7 @@ export class ParticlesEngine {
       'instanced-mesh': 'created',
       matcap: 'created',
       simulation: 'created',
-      asset: 'created'
+      asset: 'created',
     };
   }
 
