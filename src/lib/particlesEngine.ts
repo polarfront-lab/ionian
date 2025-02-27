@@ -140,6 +140,36 @@ export class ParticlesEngine {
     this.instancedMeshManager.setDestinationMatcap(this.assetService.getMatcap(matcapID));
   }
 
+  setOriginColor(color: THREE.ColorRepresentation, override: boolean = false) {
+    if (override) this.eventEmitter.emit('transitionCancelled', { type: 'matcap' });
+    this.instancedMeshManager.setOriginColor(color);
+  }
+
+  setDestinationColor(color: THREE.ColorRepresentation, override: boolean = false) {
+    if (override) this.eventEmitter.emit('transitionCancelled', { type: 'matcap' });
+    this.instancedMeshManager.setDestinationColor(color);
+  }
+
+  setOriginTexture(id: string | THREE.ColorRepresentation, override: boolean = false) {
+    if (override) this.eventEmitter.emit('transitionCancelled', { type: 'matcap' });
+
+    if (typeof id === 'string' && this.assetService.hasMatcap(id)) {
+      this.setOriginMatcap(id);
+    } else {
+      this.setOriginColor(id);
+    }
+  }
+
+  setDestinationTexture(id: string | THREE.ColorRepresentation, override: boolean = false) {
+    if (override) this.eventEmitter.emit('transitionCancelled', { type: 'matcap' });
+
+    if (typeof id === 'string' && this.assetService.hasMatcap(id)) {
+      this.setDestinationMatcap(id);
+    } else {
+      this.setDestinationColor(id);
+    }
+  }
+
   setMatcapProgress(progress: number, override: boolean = false) {
     if (override) this.eventEmitter.emit('transitionCancelled', { type: 'matcap' });
     this.engineState.matcapTransitionProgress = progress;
@@ -164,9 +194,12 @@ export class ParticlesEngine {
       return;
     }
 
-    this.dataTextureManager
-      .getDataTexture(originMesh)
-      .then((texture) => this.simulationRendererService.setOriginDataTexture({ dataTexture: texture, textureSize: size }));
+    this.dataTextureManager.getDataTexture(originMesh).then((texture) =>
+      this.simulationRendererService.setOriginDataTexture({
+        dataTexture: texture,
+        textureSize: size,
+      }),
+    );
 
     this.dataTextureManager.getDataTexture(destinationMesh).then((texture) =>
       this.simulationRendererService.setDestinationDataTexture({
@@ -260,6 +293,35 @@ export class ParticlesEngine {
     );
   }
 
+  scheduleTextureTransition(
+    origin: string,
+    destination: string,
+    options?: {
+      easing?: EasingFunction;
+      duration?: number;
+      override?: boolean;
+    },
+  ) {
+    const easing = options?.easing ?? linear;
+    const duration = options?.duration ?? 1000;
+
+    if (options?.override) {
+      this.eventEmitter.emit('transitionCancelled', { type: 'matcap' });
+    }
+
+    this.transitionService.enqueue(
+      'matcap',
+      { easing, duration },
+      {
+        onTransitionBegin: () => {
+          this.setOriginTexture(origin);
+          this.setDestinationTexture(destination);
+          this.setMatcapProgress(0);
+        },
+      },
+    );
+  }
+
   handleServiceStateUpdated({ type, state }: { type: ServiceType; state: ServiceState }) {
     this.serviceStates[type] = state;
   }
@@ -328,13 +390,5 @@ export class ParticlesEngine {
 
   private handleInteractionPositionUpdated({ position }: { position: THREE.Vector4Like }) {
     this.simulationRendererService.setInteractionPosition(position);
-  }
-
-  setOriginColor(color: THREE.ColorRepresentation) {
-    this.instancedMeshManager.setOriginColor(color);
-  }
-
-  setDestinationColor(color: THREE.ColorRepresentation) {
-    this.instancedMeshManager.setDestinationColor(color);
   }
 }

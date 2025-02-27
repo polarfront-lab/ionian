@@ -79,6 +79,10 @@ export class AssetService {
     return Array.from(this.textures.values());
   }
 
+  hasMatcap(id: string) {
+    return this.textures.has(id);
+  }
+
   /**
    * Loads a mesh asynchronously.
    * @param id - The ID of the mesh.
