@@ -1,5 +1,5 @@
 import { ParticlesEngine } from '@/lib/particlesEngine';
-import gui from 'lil-gui';
+import GUI from 'lil-gui';
 import Stats from 'stats.js';
 import * as THREE from 'three';
 import { OrbitControls } from 'three-stdlib';
@@ -37,10 +37,11 @@ const engine = new ParticlesEngine({
   scene,
   renderer,
   camera,
+  useIntersection: false,
 });
 
-const GUI = new gui();
-const matcapFolder = GUI.addFolder('matcap');
+const gui = new GUI();
+const matcapFolder = gui.addFolder('matcap');
 const matcapParams = {
   originColor: '0xffffff' as THREE.ColorRepresentation,
   destinationColor: '0xffffff' as THREE.ColorRepresentation,
@@ -50,6 +51,12 @@ const matcapParams = {
 matcapFolder.addColor(matcapParams, 'originColor').onChange((color: THREE.ColorRepresentation) => engine.setOriginColor(color));
 matcapFolder.addColor(matcapParams, 'destinationColor').onChange((color: THREE.ColorRepresentation) => engine.setDestinationColor(color));
 matcapFolder.add(matcapParams, 'progress', 0, 1, 0.01).onChange((progress: number) => engine.setMatcapProgress(progress));
+
+const toggles = {
+  useIntersect: false,
+};
+
+gui.add(toggles, 'useIntersect').onChange((v: boolean) => engine.useIntersect(v));
 
 fetchResourceUrls('meshes').then((entries) => {
   const promises = entries.map((entry) => engine.fetchAndRegisterMesh(entry.name, `/api/assets/${entry.file}`));

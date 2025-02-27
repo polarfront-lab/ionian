@@ -18,4 +18,6 @@ export interface EngineState {
   destinationMatcapID: string;
   matcapTransitionProgress: number;
   instanceGeometryScale: THREE.Vector3Like;
+
+  useIntersect: boolean;
 }

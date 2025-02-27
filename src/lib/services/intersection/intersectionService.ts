@@ -5,6 +5,8 @@ import * as THREE from 'three';
  * Service for calculating intersections between a ray and a morphed geometry.
  */
 export class IntersectionService {
+  private active: boolean = true;
+
   private raycaster = new THREE.Raycaster();
   private mousePosition = new THREE.Vector2();
 
@@ -36,6 +38,10 @@ export class IntersectionService {
     this.eventEmitter = eventEmitter;
     this.destinationGeometry = destinationGeometry;
     this.geometryNeedsUpdate = true;
+  }
+
+  setActive(active: boolean) {
+    this.active = active;
   }
 
   getIntersectionMesh(): THREE.Mesh {
@@ -96,7 +102,7 @@ export class IntersectionService {
    * Set the mouse position.
    * @param mousePosition
    */
-  setMousePosition(mousePosition?: THREE.Vector2Like) {
+  setPointerPosition(mousePosition?: THREE.Vector2Like) {
     if (mousePosition) this.mousePosition.copy(mousePosition);
   }
 
@@ -105,6 +111,7 @@ export class IntersectionService {
    * @returns The intersection point or undefined if no intersection was found.
    */
   calculate(instancedMesh: THREE.Mesh): THREE.Vector4 | undefined {
+    if (!this.active) return;
     this.updateIntersectionMesh(instancedMesh);
 
     if (!this.camera) return;

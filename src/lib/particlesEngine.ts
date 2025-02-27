@@ -18,6 +18,7 @@ type ParticlesEngineParameters = {
   scene: THREE.Scene;
   renderer: THREE.WebGLRenderer;
   camera?: THREE.Camera;
+  useIntersection?: boolean;
 };
 
 type ServiceStates = Record<ServiceType, ServiceState>;
@@ -48,23 +49,26 @@ export class ParticlesEngine {
    * @param params The parameters for creating the instance.
    */
   constructor(params: ParticlesEngineParameters) {
+    const { scene, renderer, camera, textureSize, useIntersection = true } = params;
+
     this.eventEmitter = new DefaultEventEmitter();
-    this.serviceStates = this.initialServiceStates();
+    this.serviceStates = this.getInitialServiceStates();
     this.eventEmitter.on('serviceStateUpdated', this.handleServiceStateUpdated.bind(this));
 
-    this.scene = params.scene;
-    this.renderer = params.renderer;
-    this.engineState = this.initialEngineState(params.textureSize);
+    this.scene = scene;
+    this.renderer = renderer;
+    this.engineState = this.initialEngineState(params);
 
     this.assetService = new AssetService(this.eventEmitter);
     this.transitionService = new TransitionService(this.eventEmitter);
-    this.dataTextureManager = new DataTextureService(this.eventEmitter, params.textureSize);
-    this.simulationRendererService = new SimulationRendererService(this.eventEmitter, params.textureSize, this.renderer);
-    this.instancedMeshManager = new InstancedMeshManager(params.textureSize);
+    this.dataTextureManager = new DataTextureService(this.eventEmitter, textureSize);
+    this.simulationRendererService = new SimulationRendererService(this.eventEmitter, textureSize, this.renderer);
+    this.instancedMeshManager = new InstancedMeshManager(textureSize);
     this.instancedMeshManager.useMatcapMaterial();
     this.scene.add(this.instancedMeshManager.getMesh());
 
-    this.intersectionService = new IntersectionService(this.eventEmitter, params.camera);
+    this.intersectionService = new IntersectionService(this.eventEmitter, camera);
+    if (!useIntersection) this.intersectionService.setActive(false);
 
     this.eventEmitter.on('transitionProgressed', this.handleTransitionProgress.bind(this));
     this.eventEmitter.on('interactionPositionUpdated', this.handleInteractionPositionUpdated.bind(this));
@@ -115,7 +119,7 @@ export class ParticlesEngine {
       this.engineState.destinationMeshID = meshID;
       this.simulationRendererService.setDestinationDataTexture({
         dataTexture: texture,
-        textureSize: this.engineState.textureSize,
+        textureSize: this.engineState.textureSize
       });
       this.intersectionService.setDestinationGeometry(mesh);
     });
@@ -197,15 +201,15 @@ export class ParticlesEngine {
     this.dataTextureManager.getDataTexture(originMesh).then((texture) =>
       this.simulationRendererService.setOriginDataTexture({
         dataTexture: texture,
-        textureSize: size,
-      }),
+        textureSize: size
+      })
     );
 
     this.dataTextureManager.getDataTexture(destinationMesh).then((texture) =>
       this.simulationRendererService.setDestinationDataTexture({
         dataTexture: texture,
-        textureSize: size,
-      }),
+        textureSize: size
+      })
     );
 
     this.simulationRendererService.setDataTextureTransitionProgress(this.engineState.dataTextureTransitionProgress);
@@ -234,9 +238,20 @@ export class ParticlesEngine {
     return await this.assetService.loadTextureAsync(id, url);
   }
 
+  useIntersect(use: boolean) {
+    this.intersectionService.setActive(use);
+    this.engineState.useIntersect = use;
+
+    if (!use) {
+      this.engineState.pointerPosition = { x: -99999999, y: -99999999 };
+      this.intersectionService.setPointerPosition(this.engineState.pointerPosition);
+    }
+  }
+
   setPointerPosition(position: THREE.Vector2Like) {
+    if (!this.engineState.useIntersect) return;
     this.engineState.pointerPosition = position;
-    this.intersectionService.setMousePosition(position);
+    this.intersectionService.setPointerPosition(position);
   }
 
   setGeometrySize(geometrySize: THREE.Vector3Like) {
@@ -268,8 +283,8 @@ export class ParticlesEngine {
           this.setOriginDataTexture(originMeshID, override);
           this.setDestinationDataTexture(destinationMeshID, override);
           this.setDataTextureTransitionProgress(0);
-        },
-      },
+        }
+      }
     );
   }
 
@@ -278,7 +293,7 @@ export class ParticlesEngine {
     destinationMatcapID: string,
     easing: EasingFunction = linear,
     duration: number = 1000,
-    override: boolean = false,
+    override: boolean = false
   ) {
     this.transitionService.enqueue(
       'matcap',
@@ -288,8 +303,8 @@ export class ParticlesEngine {
           this.setOriginMatcap(originMatcapID, override);
           this.setDestinationMatcap(destinationMatcapID, override);
           this.setMatcapProgress(0);
-        },
-      },
+        }
+      }
     );
   }
 
@@ -300,7 +315,7 @@ export class ParticlesEngine {
       easing?: EasingFunction;
       duration?: number;
       override?: boolean;
-    },
+    }
   ) {
     const easing = options?.easing ?? linear;
     const duration = options?.duration ?? 1000;
@@ -317,8 +332,8 @@ export class ParticlesEngine {
           this.setOriginTexture(origin);
           this.setDestinationTexture(destination);
           this.setMatcapProgress(0);
-        },
-      },
+        }
+      }
     );
   }
 
@@ -350,9 +365,9 @@ export class ParticlesEngine {
     this.dataTextureManager.dispose();
   }
 
-  private initialEngineState(textureSize: number): EngineState {
+  private initialEngineState(params: ParticlesEngineParameters): EngineState {
     return {
-      textureSize,
+      textureSize: params.textureSize,
       originMeshID: '',
       destinationMeshID: '',
       dataTextureTransitionProgress: 0,
@@ -364,16 +379,17 @@ export class ParticlesEngine {
       maxRepelDistance: 0.3,
       pointerPosition: { x: 0, y: 0 },
       instanceGeometryScale: { x: 1, y: 1, z: 1 },
+      useIntersect: params.useIntersection ?? true
     };
   }
 
-  private initialServiceStates(): ServiceStates {
+  private getInitialServiceStates(): ServiceStates {
     return {
       'data-texture': 'created',
       'instanced-mesh': 'created',
       matcap: 'created',
       simulation: 'created',
-      asset: 'created',
+      asset: 'created'
     };
   }
 
