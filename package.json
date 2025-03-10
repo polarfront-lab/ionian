@@ -38,7 +38,7 @@
   "homepage": "https://github.com/polarfront-lab/ionian#readme",
   "dependencies": {
     "mitt": "^3.0.1",
-    "three": "^0.173.0",
+    "three": "^0.174.0",
     "three-stdlib": "^2.35.14"
   },
   "devDependencies": {
@@ -54,7 +54,7 @@
     "@semantic-release/release-notes-generator": "^14.0.3",
     "@types/node": "^22.13.5",
     "@types/stats.js": "^0.17.3",
-    "@types/three": "^0.173.0",
+    "@types/three": "^0.174.0",
     "@typescript-eslint/eslint-plugin": "^8.24.1",
     "dts-bundle-generator": "^9.5.1",
     "eslint": "^9.21.0",
