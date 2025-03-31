@@ -89,32 +89,32 @@ export class DataTextureService {
       throw new Error('Mesh array cannot be empty.');
     }
 
-    const size = singleTextureSize * numMeshes;
-    const atlasData = new Float32Array(size * size * 4); // RGBA
+    const atlasWidth = singleTextureSize * numMeshes;
+    const atlasHeight = singleTextureSize; // Atlas height should be the height of a single texture
+    const atlasData = new Float32Array(atlasWidth * atlasHeight * 4); // Correct size for RGBA Float32Array
 
     try {
       for (let i = 0; i < numMeshes; i++) {
         const mesh = meshes[i];
-        // Use the single texture generation logic (can be optimized later)
-        const meshDataTexture = await this.getDataTexture(mesh); // Ensure texture is generated/cached
+        const meshDataTexture = await this.getDataTexture(mesh);
         const meshTextureData = meshDataTexture.image.data as Float32Array;
 
-        // Copy data from the single mesh texture into the atlas
         for (let y = 0; y < singleTextureSize; y++) {
           for (let x = 0; x < singleTextureSize; x++) {
             const sourceIndex = (y * singleTextureSize + x) * 4;
             const targetX = x + i * singleTextureSize;
-            const targetIndex = (y * size + targetX) * 4;
+            const targetIndex = (y * atlasWidth + targetX) * 4;
 
             atlasData[targetIndex] = meshTextureData[sourceIndex]; // R (x)
             atlasData[targetIndex + 1] = meshTextureData[sourceIndex + 1]; // G (y)
             atlasData[targetIndex + 2] = meshTextureData[sourceIndex + 2]; // B (z)
-            atlasData[targetIndex + 3] = meshTextureData[sourceIndex + 3]; // A (w - often random or unused)
+            atlasData[targetIndex + 3] = meshTextureData[sourceIndex + 3]; // A (w)
           }
         }
       }
 
-      const atlasTexture = createDataTexture(atlasData, size); // Use new signature for createDataTexture
+      const atlasTexture = new THREE.DataTexture(atlasData, atlasWidth, atlasHeight, THREE.RGBAFormat, THREE.FloatType);
+      atlasTexture.needsUpdate = true; // createDataTexture utility likely sets this, but be explicit
       atlasTexture.name = `atlas-${meshes.map((m) => m.name).join('-')}`;
       this.currentAtlas = atlasTexture; // Cache the new atlas
       this.updateServiceState('ready');

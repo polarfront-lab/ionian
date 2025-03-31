@@ -39,7 +39,7 @@ const scene = new THREE.Scene();
 scene.add(camera);
 
 // --- Particles Engine Initialization ---
-const initialTextureSize = 256;
+const initialTextureSize = 64;
 const engine = new ParticlesEngine({
   textureSize: initialTextureSize,
   scene,
