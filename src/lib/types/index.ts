@@ -23,7 +23,7 @@ export type DataTextureEntry = {
 
 export type ServiceType = 'data-texture' | 'matcap' | 'instanced-mesh' | 'simulation' | 'asset';
 export type ServiceState = 'created' | 'initializing' | 'ready' | 'disposed' | 'error' | 'loading';
-export type TransitionType = 'data-texture' | 'matcap';
+export type TransitionType = 'data-texture' | 'matcap' | 'mesh-sequence';
 
 export interface TransitionDetail {
   duration: number;

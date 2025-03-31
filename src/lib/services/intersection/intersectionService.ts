@@ -11,37 +11,37 @@ export class IntersectionService {
   private mousePosition = new THREE.Vector2();
 
   private camera?: THREE.Camera;
-  private originGeometry?: THREE.BufferGeometry;
-  private destinationGeometry?: THREE.BufferGeometry;
 
-  private progress: number = 0;
-  private intersectionMesh = new THREE.Mesh();
+  private meshSequenceGeometries: THREE.BufferGeometry[] = []; // ADDED: Store cloned geometries
+  private meshSequenceUUIDs: string[] = []; // ADDED: Track UUIDs to avoid redundant cloning
+
+  private overallProgress: number = 0; // ADDED: Store overall progress (0-1)
+  private intersectionMesh = new THREE.Mesh(); // Use a single mesh for intersection target
 
   private geometryNeedsUpdate: boolean;
   private eventEmitter: EngineEventEmitter<Events>;
 
-  private blendedGeometry?: THREE.BufferGeometry;
+  private blendedGeometry?: THREE.BufferGeometry; // Keep for the final blended result
   private intersection?: THREE.Vector4;
 
-  private lastKnownOriginMeshID?: string;
-  private lastKnownDestinationMeshID?: string;
   /**
    * Creates a new IntersectionService instance.
    * @param eventEmitter The event emitter used for emitting events.
    * @param camera The camera used for raycasting.
-   * @param originGeometry The origin geometry.
-   * @param destinationGeometry The destination geometry.
    */
-  constructor(eventEmitter: DefaultEventEmitter, camera?: THREE.Camera, originGeometry?: THREE.BufferGeometry, destinationGeometry?: THREE.BufferGeometry) {
+  constructor(eventEmitter: DefaultEventEmitter, camera?: THREE.Camera) {
     this.camera = camera;
-    this.originGeometry = originGeometry;
     this.eventEmitter = eventEmitter;
-    this.destinationGeometry = destinationGeometry;
     this.geometryNeedsUpdate = true;
   }
 
   setActive(active: boolean) {
     this.active = active;
+    if (!active) {
+      // Clear intersection when deactivated
+      this.intersection = undefined;
+      this.eventEmitter.emit('interactionPositionUpdated', { position: { x: 0, y: 0, z: 0, w: 0 } });
+    }
   }
 
   getIntersectionMesh(): THREE.Mesh {
@@ -57,45 +57,49 @@ export class IntersectionService {
   }
 
   /**
-   * Set the origin geometry.
-   * @param source
+   * Sets the sequence of meshes used for intersection calculations.
+   * Clones the geometries to avoid modifying originals.
+   * @param meshes An array of THREE.Mesh objects in sequence.
    */
-  setOriginGeometry(source: THREE.Mesh) {
-    if (this.lastKnownOriginMeshID === source.uuid) return;
-    // dispose the previous geometry
-    if (this.originGeometry) this.originGeometry.dispose();
+  setMeshSequence(meshes: THREE.Mesh[]) {
+    // Dispose old geometries
+    this.meshSequenceGeometries.forEach((geom) => geom.dispose());
+    this.meshSequenceGeometries = [];
+    this.meshSequenceUUIDs = [];
 
-    this.lastKnownOriginMeshID = source.uuid;
-    // we need to clone the geometry because we are going to modify it.
-    this.originGeometry = source.geometry.clone();
-    this.originGeometry.applyMatrix4(source.matrixWorld);
-    this.geometryNeedsUpdate = true;
+    if (!meshes || meshes.length === 0) {
+      this.geometryNeedsUpdate = true; // Need update to potentially clear geometry
+      return;
+    }
+
+    meshes.forEach((mesh) => {
+      if (mesh && mesh.geometry) {
+        const clonedGeometry = mesh.geometry.clone();
+        // IMPORTANT: Apply the mesh's world matrix to the cloned geometry
+        // so the intersection calculation uses world coordinates.
+        clonedGeometry.applyMatrix4(mesh.matrixWorld);
+        this.meshSequenceGeometries.push(clonedGeometry);
+        this.meshSequenceUUIDs.push(mesh.uuid); // Store UUID for reference
+      } else {
+        console.warn('Invalid mesh provided to IntersectionService sequence.');
+        // Add a placeholder or handle error? For now, just skip.
+      }
+    });
+
+    console.log(`IntersectionService: Set ${this.meshSequenceGeometries.length} geometries.`);
+    this.geometryNeedsUpdate = true; // Geometry has changed
   }
 
   /**
-   * Set the destination geometry.
-   * @param source
+   * Set the overall progress through the mesh sequence.
+   * @param progress Value between 0.0 (first mesh) and 1.0 (last mesh).
    */
-  setDestinationGeometry(source: THREE.Mesh) {
-    if (this.lastKnownDestinationMeshID === source.uuid) return;
-    // dispose the previous geometry
-    if (this.destinationGeometry) this.destinationGeometry.dispose();
-
-    this.lastKnownDestinationMeshID = source.uuid;
-    // we need to clone the geometry because we are going to modify it.
-    this.destinationGeometry = source.geometry.clone();
-    this.destinationGeometry.applyMatrix4(source.matrixWorld);
-
-    this.geometryNeedsUpdate = true;
-  }
-
-  /**
-   * Set the progress of the morphing animation.
-   * @param progress
-   */
-  setProgress(progress: number) {
-    this.progress = progress;
-    this.geometryNeedsUpdate = true;
+  setOverallProgress(progress: number) {
+    const newProgress = THREE.MathUtils.clamp(progress, 0.0, 1.0);
+    if (this.overallProgress !== newProgress) {
+      this.overallProgress = newProgress;
+      this.geometryNeedsUpdate = true; // Progress change requires geometry update
+    }
   }
 
   /**
@@ -111,36 +115,84 @@ export class IntersectionService {
    * @returns The intersection point or undefined if no intersection was found.
    */
   calculate(instancedMesh: THREE.Mesh): THREE.Vector4 | undefined {
-    if (!this.active) return;
-    this.updateIntersectionMesh(instancedMesh);
+    if (!this.active || !this.camera || this.meshSequenceGeometries.length === 0) {
+      // If inactive or no camera/geometry, ensure no intersection is reported
+      if (this.intersection) {
+        // Only emit update if state changes
+        this.intersection = undefined;
+        this.eventEmitter.emit('interactionPositionUpdated', { position: { x: 0, y: 0, z: 0, w: 0 } });
+      }
+      return undefined;
+    }
 
-    if (!this.camera) return;
     if (this.geometryNeedsUpdate) {
-      this.geometryNeedsUpdate = false;
-      this.blendedGeometry = this.getBlendedGeometry();
+      // Dispose previous blended geometry before creating a new one
+      if (this.blendedGeometry && this.blendedGeometry !== this.intersectionMesh.geometry) {
+        this.blendedGeometry.dispose();
+      }
+      this.blendedGeometry = this.getBlendedGeometry(); // Calculate the new blended geometry
+      this.geometryNeedsUpdate = false; // Mark as updated
+
+      // Update the mesh used for raycasting
+      if (this.blendedGeometry) {
+        // Only replace geometry if it's different to avoid unnecessary disposal
+        if (this.intersectionMesh.geometry !== this.blendedGeometry) {
+          if (this.intersectionMesh.geometry) this.intersectionMesh.geometry.dispose(); // Dispose old one first
+          this.intersectionMesh.geometry = this.blendedGeometry;
+        }
+      } else {
+        // If no blended geometry, clear the intersection mesh's geometry
+        if (this.intersectionMesh.geometry) this.intersectionMesh.geometry.dispose();
+        this.intersectionMesh.geometry = new THREE.BufferGeometry(); // Empty geometry
+      }
     }
 
-    if (this.blendedGeometry) {
-      this.intersection = this.getFirstIntersection(this.camera, instancedMesh);
-    } else {
-      this.intersection = undefined;
+    // Ensure the intersection mesh's world matrix matches the instanced mesh
+    // This is crucial if the instanced mesh itself moves or rotates
+    this.intersectionMesh.matrixWorld.copy(instancedMesh.matrixWorld);
+
+    let newIntersection: THREE.Vector4 | undefined = undefined;
+    if (this.blendedGeometry && this.blendedGeometry.attributes.position) {
+      // Check if geometry is valid
+      newIntersection = this.getFirstIntersection(this.camera, this.intersectionMesh); // Use intersectionMesh now
     }
 
-    if (this.intersection) {
-      this.eventEmitter.emit('interactionPositionUpdated', { position: this.intersection });
-    } else {
-      this.eventEmitter.emit('interactionPositionUpdated', { position: { x: 0, y: 0, z: 0, w: 0 } });
+    // Only emit update if intersection state changes
+    const hasChanged =
+      this.intersection?.x !== newIntersection?.x ||
+      this.intersection?.y !== newIntersection?.y ||
+      this.intersection?.z !== newIntersection?.z ||
+      (this.intersection && !newIntersection) ||
+      (!this.intersection && newIntersection);
+
+    if (hasChanged) {
+      this.intersection = newIntersection;
+      if (this.intersection) {
+        // Convert world intersection point to the instanced mesh's local space
+        const worldPoint = new THREE.Vector3(this.intersection.x, this.intersection.y, this.intersection.z);
+        const localPoint = instancedMesh.worldToLocal(worldPoint.clone()); // Use clone
+        this.intersection.set(localPoint.x, localPoint.y, localPoint.z, 1); // w=1 indicates intersection found
+
+        this.eventEmitter.emit('interactionPositionUpdated', { position: this.intersection });
+      } else {
+        this.eventEmitter.emit('interactionPositionUpdated', { position: { x: 0, y: 0, z: 0, w: 0 } }); // w=0 indicates no intersection
+      }
     }
 
-    return this.intersection;
+    return this.intersection; // Return the local space intersection vector
   }
 
   /**
    * Dispose the resources used by the IntersectionService.
    */
   dispose() {
-    this.blendedGeometry?.dispose();
-    this.intersectionMesh.geometry.dispose();
+    this.meshSequenceGeometries.forEach((geom) => geom.dispose());
+    this.meshSequenceGeometries = [];
+    this.meshSequenceUUIDs = [];
+    if (this.blendedGeometry && this.blendedGeometry !== this.intersectionMesh.geometry) {
+      this.blendedGeometry.dispose();
+    }
+    this.intersectionMesh.geometry?.dispose(); // Dispose geometry held by intersectionMesh
   }
 
   private updateIntersectionMesh(instancedMesh: THREE.Mesh) {
@@ -156,35 +208,74 @@ export class IntersectionService {
     this.intersectionMesh.updateMatrixWorld(true);
   }
 
-  private getFirstIntersection(camera: THREE.Camera, instancedMesh: THREE.Mesh) {
+  private getFirstIntersection(camera: THREE.Camera, targetMesh: THREE.Mesh): THREE.Vector4 | undefined {
     this.raycaster.setFromCamera(this.mousePosition, camera);
 
-    const intersection = this.raycaster.intersectObject(this.intersectionMesh, false)[0];
-    if (intersection) {
-      const worldPoint = intersection.point.clone();
-      const localPoint = instancedMesh.worldToLocal(worldPoint);
-      return new THREE.Vector4(localPoint.x, localPoint.y, localPoint.z, 1);
+    // Intersect with the provided target mesh (which should have the blended geometry)
+    const intersects = this.raycaster.intersectObject(targetMesh, false);
+
+    if (intersects.length > 0 && intersects[0].point) {
+      const worldPoint = intersects[0].point;
+      // Return world point here, conversion to local happens in calculate()
+      return new THREE.Vector4(worldPoint.x, worldPoint.y, worldPoint.z, 1);
     }
+    return undefined;
   }
 
-  private getBlendedGeometry() {
-    if (this.progress === 0) {
-      return this.originGeometry;
+  private getBlendedGeometry(): THREE.BufferGeometry | undefined {
+    const numGeometries = this.meshSequenceGeometries.length;
+    if (numGeometries === 0) {
+      return undefined;
     }
-    if (this.progress === 1) {
-      return this.destinationGeometry;
-    }
-
-    if (!this.originGeometry || !this.destinationGeometry) {
-      return;
+    if (numGeometries === 1) {
+      return this.meshSequenceGeometries[0]; // No blending needed
     }
 
-    if (this.originGeometry === this.destinationGeometry) {
-      // if same, just return one of them
-      return this.originGeometry;
+    // Calculate which two geometries to blend and the local progress
+    const totalSegments = numGeometries - 1;
+    const progressPerSegment = 1.0 / totalSegments;
+    const scaledProgress = this.overallProgress * totalSegments;
+
+    let indexA = Math.floor(scaledProgress);
+    let indexB = indexA + 1;
+
+    // Clamp indices to be within bounds
+    indexA = THREE.MathUtils.clamp(indexA, 0, totalSegments);
+    indexB = THREE.MathUtils.clamp(indexB, 0, totalSegments);
+
+    // Calculate local progress between indexA and indexB
+    // Avoid division by zero if progressPerSegment is 0 (only one mesh)
+    let localProgress = 0;
+    if (progressPerSegment > 0) {
+      // localProgress = (this.overallProgress - (indexA * progressPerSegment)) / progressPerSegment;
+      localProgress = scaledProgress - indexA; // Simpler way: fraction part of scaledProgress
     }
 
-    return this.blendGeometry(this.originGeometry, this.destinationGeometry, this.progress);
+    // Handle edge case: progress is exactly 1.0
+    if (this.overallProgress >= 1.0) {
+      indexA = totalSegments;
+      indexB = totalSegments;
+      localProgress = 1.0; // Should blend fully to the last mesh
+    }
+
+    // Ensure localProgress is clamped (due to potential float inaccuracies)
+    localProgress = THREE.MathUtils.clamp(localProgress, 0.0, 1.0);
+
+    const geomA = this.meshSequenceGeometries[indexA];
+    const geomB = this.meshSequenceGeometries[indexB];
+
+    if (!geomA || !geomB) {
+      console.error('IntersectionService: Invalid geometries found for blending at indices', indexA, indexB);
+      return this.meshSequenceGeometries[0]; // Fallback
+    }
+
+    // If the two geometries are the same (e.g., at progress 0 or 1), return one directly
+    if (indexA === indexB) {
+      return geomA;
+    }
+
+    // Perform the blending
+    return this.blendGeometry(geomA, geomB, localProgress);
   }
 
   private blendGeometry(from: THREE.BufferGeometry, to: THREE.BufferGeometry, progress: number): THREE.BufferGeometry {

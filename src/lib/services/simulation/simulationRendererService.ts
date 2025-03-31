@@ -1,18 +1,21 @@
 import { DefaultEventEmitter } from '@/lib/events';
-import { DataTextureEntry, ServiceState } from '@/lib/types';
+import { ServiceState } from '@/lib/types';
 import * as THREE from 'three';
-import { SimulationRenderer } from './simulationRenderer';
+import { PositionAtlasEntry, SimulationRenderer } from './simulationRenderer';
 
 export class SimulationRendererService {
   private state!: ServiceState;
   private textureSize: number;
-  private dataTextureTransitionProgress: number;
+  private overallProgress: number; // ADDED: Store overall progress
   private velocityTractionForce: number;
   private positionalTractionForce: number;
 
   private simulationRenderer;
   private webGLRenderer;
   private eventEmitter;
+
+  // Store atlas info
+  private currentAtlasEntry: PositionAtlasEntry | null = null; // ADDED
 
   private lastKnownVelocityDataTexture: THREE.Texture;
   private lastKnownPositionDataTexture: THREE.Texture;
@@ -21,7 +24,7 @@ export class SimulationRendererService {
     this.eventEmitter = eventEmitter;
     this.webGLRenderer = webGLRenderer;
     this.textureSize = size;
-    this.dataTextureTransitionProgress = 0;
+    this.overallProgress = 0; // ADDED: Initialize overall progress
     this.velocityTractionForce = 0.1;
     this.positionalTractionForce = 0.1;
 
@@ -34,33 +37,36 @@ export class SimulationRendererService {
     this.updateServiceState('ready');
   }
 
+  /**
+   * Sets the position data texture atlas for the simulation.
+   * @param entry An object containing the atlas texture and related parameters.
+   */
+  setPositionAtlas(entry: PositionAtlasEntry) {
+    // Validate texture size consistency if needed (atlas width vs textureSize * numMeshes)
+    const expectedWidth = entry.singleTextureSize * entry.numMeshes;
+    if (entry.dataTexture.image.width !== expectedWidth) {
+      this.eventEmitter.emit('invalidRequest', { message: `Atlas texture width mismatch.` });
+      return;
+    }
+    this.currentAtlasEntry = entry; // Store the current atlas info
+    this.simulationRenderer.setPositionAtlas(entry);
+  }
+
+  /**
+   * Sets the overall progress for the mesh sequence transition.
+   * @param progress The progress value (0.0 to 1.0).
+   */
+  setOverallProgress(progress: number) {
+    this.overallProgress = progress; // Store progress
+    this.simulationRenderer.setOverallProgress(this.overallProgress);
+  }
+
   setTextureSize(size: number) {
     this.updateServiceState('initializing');
     this.simulationRenderer.dispose();
     this.textureSize = size;
     this.simulationRenderer = new SimulationRenderer(size, this.webGLRenderer);
     this.updateServiceState('ready');
-  }
-
-  setOriginDataTexture(entry: DataTextureEntry) {
-    if (this.textureSize !== entry.textureSize) {
-      this.eventEmitter.emit('invalidRequest', { message: `Texture size mismatch: ${entry.textureSize} vs ${this.textureSize}` });
-    } else {
-      this.simulationRenderer.setMorphSourceDataTexture(entry.dataTexture);
-    }
-  }
-
-  setDestinationDataTexture(entry: DataTextureEntry) {
-    if (this.textureSize !== entry.textureSize) {
-      this.eventEmitter.emit('invalidRequest', { message: `Texture size mismatch: ${entry.textureSize} vs ${this.textureSize}` });
-    } else {
-      this.simulationRenderer.setMorphDestinationDataTexture(entry.dataTexture);
-    }
-  }
-
-  setDataTextureTransitionProgress(progress: number) {
-    this.dataTextureTransitionProgress = progress;
-    this.simulationRenderer.setProgress(this.dataTextureTransitionProgress);
   }
 
   setVelocityTractionForce(force: number) {
@@ -74,24 +80,30 @@ export class SimulationRendererService {
   }
 
   compute(elapsedTime: number) {
+    if (this.state !== 'ready') return; // Don't compute if not ready
     this.simulationRenderer.compute(elapsedTime);
+    // Update last known textures after computation
+    this.lastKnownVelocityDataTexture = this.simulationRenderer.getVelocityTexture();
+    this.lastKnownPositionDataTexture = this.simulationRenderer.getPositionTexture();
   }
 
   getVelocityTexture(): THREE.Texture {
-    if (this.state === 'ready') this.lastKnownVelocityDataTexture = this.simulationRenderer.getVelocityTexture();
+    // Return the latest texture obtained during compute()
     return this.lastKnownVelocityDataTexture;
   }
 
   getPositionTexture(): THREE.Texture {
-    if (this.state === 'ready') this.lastKnownPositionDataTexture = this.simulationRenderer.getPositionTexture();
+    // Return the latest texture obtained during compute()
     return this.lastKnownPositionDataTexture;
   }
 
   dispose() {
     this.updateServiceState('disposed');
     this.simulationRenderer.dispose();
-    this.lastKnownVelocityDataTexture.dispose();
-    this.lastKnownPositionDataTexture.dispose();
+    // Dispose last known textures only if they are managed solely here (unlikely)
+    // this.lastKnownVelocityDataTexture.dispose();
+    // this.lastKnownPositionDataTexture.dispose();
+    this.currentAtlasEntry = null; // Clear reference
   }
 
   private updateServiceState(serviceState: ServiceState) {
@@ -100,10 +112,12 @@ export class SimulationRendererService {
   }
 
   setInteractionPosition(position: THREE.Vector4Like) {
+    // Pass through to the renderer
     this.simulationRenderer.setInteractionPosition(position);
   }
 
   setMaxRepelDistance(distance: number) {
+    // Pass through to the renderer
     this.simulationRenderer.setMaxRepelDistance(distance);
   }
 }

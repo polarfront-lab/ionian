@@ -11,6 +11,7 @@ export class DataTextureService {
   private textureSize: number;
   private dataTextures: Map<string, THREE.DataTexture>;
   private eventEmitter;
+  private currentAtlas: THREE.DataTexture | null = null; // Cache the current atlas
 
   /**
    * Creates a new DataTextureManager instance.
@@ -27,8 +28,13 @@ export class DataTextureService {
   setTextureSize(textureSize: number) {
     if (this.textureSize === textureSize) return;
     this.textureSize = textureSize;
+    // Clear cache and dispose old textures
     this.dataTextures.forEach((texture) => texture.dispose());
     this.dataTextures.clear();
+    if (this.currentAtlas) {
+      this.currentAtlas.dispose();
+      this.currentAtlas = null;
+    }
   }
 
   /**
@@ -37,25 +43,86 @@ export class DataTextureService {
    * @param asset The asset to prepare.
    */
   async getDataTexture(asset: THREE.Mesh) {
-    const texture = this.dataTextures.get(asset.name);
-    if (texture) {
-      return texture; // already prepared
+    const cachedTexture = this.dataTextures.get(asset.uuid); // Use UUID for uniqueness
+    if (cachedTexture) {
+      return cachedTexture;
     }
 
     const meshData = parseMeshData(asset);
     const array = sampleMesh(meshData, this.textureSize);
     const dataTexture = createDataTexture(array, this.textureSize);
-    dataTexture.name = asset.name;
+    dataTexture.name = asset.name; // Keep name for reference
+    this.dataTextures.set(asset.uuid, dataTexture); // Cache using UUID
     return dataTexture;
   }
 
   async dispose() {
+    this.dataTextures.forEach((texture) => texture.dispose());
     this.dataTextures.clear();
+    if (this.currentAtlas) {
+      this.currentAtlas.dispose();
+      this.currentAtlas = null;
+    }
     this.updateServiceState('disposed');
   }
 
   private updateServiceState(serviceState: ServiceState) {
+    // Debounce or manage state updates if they become too frequent
     this.eventEmitter.emit('serviceStateUpdated', { type: 'data-texture', state: serviceState });
+  }
+
+  /**
+   * Creates a Texture Atlas containing position data for a sequence of meshes.
+   * @param meshes An array of THREE.Mesh objects in the desired sequence.
+   * @param singleTextureSize The desired resolution (width/height) for each mesh's data within the atlas.
+   * @returns A Promise resolving to the generated DataTexture atlas.
+   */
+  async createSequenceDataTextureAtlas(meshes: THREE.Mesh[], singleTextureSize: number): Promise<THREE.DataTexture> {
+    this.updateServiceState('loading');
+    if (this.currentAtlas) {
+      this.currentAtlas.dispose(); // Dispose previous atlas
+      this.currentAtlas = null;
+    }
+
+    const numMeshes = meshes.length;
+    if (numMeshes === 0) {
+      throw new Error('Mesh array cannot be empty.');
+    }
+
+    const size = singleTextureSize * numMeshes;
+    const atlasData = new Float32Array(size * size * 4); // RGBA
+
+    try {
+      for (let i = 0; i < numMeshes; i++) {
+        const mesh = meshes[i];
+        // Use the single texture generation logic (can be optimized later)
+        const meshDataTexture = await this.getDataTexture(mesh); // Ensure texture is generated/cached
+        const meshTextureData = meshDataTexture.image.data as Float32Array;
+
+        // Copy data from the single mesh texture into the atlas
+        for (let y = 0; y < singleTextureSize; y++) {
+          for (let x = 0; x < singleTextureSize; x++) {
+            const sourceIndex = (y * singleTextureSize + x) * 4;
+            const targetX = x + i * singleTextureSize;
+            const targetIndex = (y * size + targetX) * 4;
+
+            atlasData[targetIndex] = meshTextureData[sourceIndex]; // R (x)
+            atlasData[targetIndex + 1] = meshTextureData[sourceIndex + 1]; // G (y)
+            atlasData[targetIndex + 2] = meshTextureData[sourceIndex + 2]; // B (z)
+            atlasData[targetIndex + 3] = meshTextureData[sourceIndex + 3]; // A (w - often random or unused)
+          }
+        }
+      }
+
+      const atlasTexture = createDataTexture(atlasData, size); // Use new signature for createDataTexture
+      atlasTexture.name = `atlas-${meshes.map((m) => m.name).join('-')}`;
+      this.currentAtlas = atlasTexture; // Cache the new atlas
+      this.updateServiceState('ready');
+      return atlasTexture;
+    } catch (error) {
+      this.updateServiceState('error');
+      throw error; // Re-throw error for ParticlesEngine to catch
+    }
   }
 }
 
