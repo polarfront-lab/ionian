@@ -85,8 +85,6 @@ export class IntersectionService {
         // Add a placeholder or handle error? For now, just skip.
       }
     });
-
-    console.log(`IntersectionService: Set ${this.meshSequenceGeometries.length} geometries.`);
     this.geometryNeedsUpdate = true; // Geometry has changed
   }
 

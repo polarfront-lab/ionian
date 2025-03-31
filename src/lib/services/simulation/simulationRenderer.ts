@@ -44,16 +44,13 @@ export class SimulationRenderer {
    * @param initialPosition The initial position data texture (optional, defaults to sphere).
    */
   constructor(size: number, webGLRenderer: THREE.WebGLRenderer, initialPosition?: THREE.DataTexture) {
-    console.log(`SimulationRenderer: Initializing with size ${size}x${size}`);
     this.webGLRenderer = webGLRenderer;
     this.gpuComputationRenderer = new GPUComputationRenderer(size, size, this.webGLRenderer);
 
     // Set data type (important for precision)
     if (!webGLRenderer.capabilities.isWebGL2 && webGLRenderer.extensions.get('OES_texture_float')) {
-      console.log('SimulationRenderer: Using THREE.FloatType (OES_texture_float)');
       this.gpuComputationRenderer.setDataType(THREE.FloatType);
     } else if (!webGLRenderer.capabilities.isWebGL2) {
-      console.log('SimulationRenderer: Using THREE.HalfFloatType');
       this.gpuComputationRenderer.setDataType(THREE.HalfFloatType); // Fallback for WebGL1 without float support
     }
 
@@ -99,11 +96,8 @@ export class SimulationRenderer {
       throw new Error('Failed to initialize SimulationRenderer: ' + initError);
     }
 
-    // --- MODIFIED: Explicitly set initial uniforms AFTER init() ---
-    console.log('SimulationRenderer: Setting initial uniforms after init.');
     // Use the initial texture as the 'atlas' before the real one is set
     this.positionVar.material.uniforms.uPositionAtlas.value = this.initialPositionDataTexture;
-    this.velocityVar.material.uniforms.uPositionAtlas.value = this.initialPositionDataTexture;
     // Ensure numMeshes and size reflect this initial single texture state
     this.positionVar.material.uniforms.uNumMeshes.value = 1;
     this.velocityVar.material.uniforms.uNumMeshes.value = 1;
@@ -112,13 +106,10 @@ export class SimulationRenderer {
     // Set initial texture dependencies correctly
     this.positionVar.material.uniforms.uCurrentVelocity.value = this.gpuComputationRenderer.getCurrentRenderTarget(this.velocityVar).texture;
     this.velocityVar.material.uniforms.uCurrentPosition.value = this.gpuComputationRenderer.getCurrentRenderTarget(this.positionVar).texture;
-    // --- END MODIFIED ---
 
     // Cache the initial output textures
     this.lastKnownVelocityDataTexture = this.gpuComputationRenderer.getCurrentRenderTarget(this.velocityVar).texture;
     this.lastKnownPositionDataTexture = this.gpuComputationRenderer.getCurrentRenderTarget(this.positionVar).texture;
-
-    console.log('SimulationRenderer: Initialization complete.');
   }
 
   /**
@@ -126,10 +117,6 @@ export class SimulationRenderer {
    * @param entry Information about the atlas texture.
    */
   setPositionAtlas(entry: PositionAtlasEntry) {
-    console.log(
-      `SimulationRenderer: Setting position atlas. NumMeshes: ${entry.numMeshes}, AtlasTex Size: ${entry.dataTexture.image.width}x${entry.dataTexture.image.height}, SingleTexSize: ${entry.singleTextureSize}`,
-    );
-
     // Validate texture dimensions (optional but good practice)
     const expectedAtlasWidth = entry.singleTextureSize * entry.numMeshes;
     if (entry.dataTexture.image.width !== expectedAtlasWidth || entry.dataTexture.image.height !== entry.singleTextureSize) {
@@ -156,8 +143,6 @@ export class SimulationRenderer {
     // to read from *this* frame.
     this.positionVar.material.uniforms.uCurrentVelocity.value = this.gpuComputationRenderer.getCurrentRenderTarget(this.velocityVar).texture;
     this.velocityVar.material.uniforms.uCurrentPosition.value = this.gpuComputationRenderer.getCurrentRenderTarget(this.positionVar).texture;
-
-    console.log('SimulationRenderer: Position atlas uniforms updated.');
     // Note: We don't reset progress here; that's handled by setOverallProgress.
   }
 
@@ -194,7 +179,6 @@ export class SimulationRenderer {
    * Disposes the resources used by the simulation renderer.
    */
   dispose() {
-    console.log('SimulationRenderer: Disposing...');
     // Dispose GPGPU resources FIRST
     this.gpuComputationRenderer.dispose(); // Should dispose variables, materials, programs, render targets
 
@@ -206,8 +190,6 @@ export class SimulationRenderer {
     // Assuming DataTextureService manages its lifecycle.
     // this.positionAtlasTexture?.dispose(); -> Let DataTextureService handle this.
     this.positionAtlasTexture = null;
-
-    console.log('SimulationRenderer: Dispose complete.');
   }
 
   /**

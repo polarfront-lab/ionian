@@ -143,11 +143,8 @@ export class ParticlesEngine {
   // --- Update setTextureSize ---
   async setTextureSize(size: number) {
     if (this.engineState.textureSize === size) {
-      console.log(`Texture size already ${size}. Skipping resize.`);
       return;
     }
-
-    console.log(`Setting texture size from ${this.engineState.textureSize} to ${size}`);
     this.engineState.textureSize = size;
 
     // Resize core services
@@ -162,12 +159,10 @@ export class ParticlesEngine {
     // Re-apply mesh sequence if it exists. This regenerates the atlas with the new size
     // and updates simulation/intersection services via setMeshSequence internal calls.
     if (this.engineState.meshSequence.length > 0) {
-      console.log('Re-applying mesh sequence for new texture size...');
       await this.setMeshSequence(this.engineState.meshSequence);
     }
 
     // Update other simulation parameters (these might need re-application after GPGPU recreation)
-    console.log('Re-applying simulation parameters...');
     this.simulationRendererService.setVelocityTractionForce(this.engineState.velocityTractionForce);
     this.simulationRendererService.setPositionalTractionForce(this.engineState.positionalTractionForce);
     this.simulationRendererService.setMaxRepelDistance(this.engineState.maxRepelDistance);
@@ -176,13 +171,10 @@ export class ParticlesEngine {
     this.intersectionService.setOverallProgress(this.engineState.overallProgress); // Also update intersection
 
     // Update InstancedMeshManager appearance parameters
-    console.log('Re-applying appearance parameters...');
     this.instancedMeshManager.setOriginMatcap(this.assetService.getMatcap(this.engineState.originMatcapID));
     this.instancedMeshManager.setDestinationMatcap(this.assetService.getMatcap(this.engineState.destinationMatcapID));
     this.instancedMeshManager.setProgress(this.engineState.matcapTransitionProgress);
     this.instancedMeshManager.setGeometrySize(this.engineState.instanceGeometryScale);
-
-    console.log(`Texture size change to ${size} complete.`);
   }
 
   registerMesh(id: string, mesh: THREE.Mesh) {
@@ -251,8 +243,6 @@ export class ParticlesEngine {
       this.intersectionService.setMeshSequence([]); // Clear intersection sequence
       return;
     }
-
-    console.log('Setting mesh sequence:', meshIDs);
     this.engineState.meshSequence = meshIDs;
     this.engineState.overallProgress = 0; // Reset progress when sequence changes
 
@@ -275,9 +265,7 @@ export class ParticlesEngine {
 
     try {
       // Generate the atlas texture
-      console.log('Generating sequence data texture atlas...');
       this.meshSequenceAtlasTexture = await this.dataTextureManager.createSequenceDataTextureAtlas(meshes, this.engineState.textureSize);
-      console.log('Atlas texture generated.');
 
       // Update the simulation renderer
       this.simulationRendererService.setPositionAtlas({
@@ -290,11 +278,8 @@ export class ParticlesEngine {
       this.simulationRendererService.setOverallProgress(this.engineState.overallProgress);
 
       // Update IntersectionService with the valid meshes
-      console.log('Updating intersection service sequence...');
       this.intersectionService.setMeshSequence(meshes);
       this.intersectionService.setOverallProgress(this.engineState.overallProgress); // Set initial progress
-
-      console.log('Mesh sequence setup complete.');
     } catch (error) {
       console.error('Failed during mesh sequence setup:', error);
       this.meshSequenceAtlasTexture = null;
@@ -487,7 +472,6 @@ export class ParticlesEngine {
    * Disposes the resources used by the engine.
    */
   dispose() {
-    console.log('Disposing ParticlesEngine resources...');
     // Check if scene exists before removing
     if (this.scene && this.instancedMeshManager) {
       this.scene.remove(this.instancedMeshManager.getMesh());
@@ -499,7 +483,6 @@ export class ParticlesEngine {
     this.assetService?.dispose();
     this.dataTextureManager?.dispose();
     this.eventEmitter?.dispose(); // Dispose event emitter too
-    console.log('ParticlesEngine disposed.');
   }
 
   private initialEngineState(params: ParticlesEngineParameters): EngineState {
