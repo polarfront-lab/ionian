@@ -15,12 +15,14 @@ export class AssetService {
   private readonly textureLoader = new THREE.TextureLoader();
   private readonly dracoLoader = new DRACOLoader();
 
-  private solidColorTexture = new THREE.DataTexture(new Uint8Array([127, 127, 127, 255]), 1, 1, THREE.RGBAFormat);
+  private readonly solidColorTextures = new Map<string, THREE.Texture>();
+  private fallbackTexture = new THREE.DataTexture(new Uint8Array([127, 127, 127, 255]), 1, 1, THREE.RGBAFormat);
 
   constructor(eventEmitter: DefaultEventEmitter) {
     this.eventEmitter = eventEmitter;
     this.dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.7/');
     this.gltfLoader.setDRACOLoader(this.dracoLoader);
+    this.fallbackTexture.name = 'default-fallback-texture';
     this.updateServiceState('ready');
   }
 
@@ -45,22 +47,37 @@ export class AssetService {
     this.eventEmitter.emit('assetRegistered', { id });
   }
 
-  setSolidColor(color: THREE.ColorRepresentation) {
-    this.changeColor(color);
-  }
-
-  getSolidColorTexture() {
-    return this.solidColorTexture;
-  }
-
   getMesh(id: string): THREE.Mesh | null {
     return this.meshes.get(id) ?? null;
   }
 
-  getMatcap(id: string): THREE.Texture {
+  getMatcapTexture(id: string): THREE.Texture {
     const texture = this.textures.get(id);
     if (!texture) this.eventEmitter.emit('invalidRequest', { message: `texture with id "${id}" not found. using solid color texture instead...` });
-    return texture ?? this.solidColorTexture;
+    return texture ?? this.fallbackTexture;
+  }
+
+  getSolidColorTexture(colorValue: THREE.ColorRepresentation): THREE.Texture {
+    const colorKey = new THREE.Color(colorValue).getHexString();
+    let texture = this.solidColorTextures.get(colorKey);
+
+    if (texture) {
+      return texture;
+    }
+
+    try {
+      const texture = this.createSolidColorDataTexture(new THREE.Color(colorValue));
+      this.solidColorTextures.set(colorKey, texture);
+      return texture;
+    } catch (error) {
+      console.error(`Invalid color value provided to getSolidColorTexture: ${colorValue}`, error);
+      this.eventEmitter.emit('invalidRequest', { message: `Invalid color value: ${colorValue}. Using fallback texture.` });
+      return this.fallbackTexture;
+    }
+  }
+
+  getFallbackTexture() {
+    return this.fallbackTexture;
   }
 
   getMeshIDs(): string[] {
@@ -79,8 +96,32 @@ export class AssetService {
     return Array.from(this.textures.values());
   }
 
-  hasMatcap(id: string) {
-    return this.textures.has(id);
+  private createSolidColorDataTexture(color: THREE.ColorRepresentation, size: number = 16): THREE.DataTexture {
+    const col = new THREE.Color(color);
+    const width = size;
+    const height = size;
+    const data = new Uint8Array(width * height * 4); // RGBA
+
+    const r = Math.floor(col.r * 255);
+    const g = Math.floor(col.g * 255);
+    const b = Math.floor(col.b * 255);
+
+    for (let i = 0; i < width * height; i++) {
+      const index = i * 4;
+      data[index] = r;
+      data[index + 1] = g;
+      data[index + 2] = b;
+      data[index + 3] = 255; // Alpha
+    }
+
+    const texture = new THREE.DataTexture(data, width, height, THREE.RGBAFormat);
+    texture.type = THREE.UnsignedByteType;
+    texture.wrapS = THREE.RepeatWrapping; // Or ClampToEdgeWrapping
+    texture.wrapT = THREE.RepeatWrapping; // Or ClampToEdgeWrapping
+    texture.minFilter = THREE.NearestFilter; // Ensure sharp color
+    texture.magFilter = THREE.NearestFilter;
+    texture.needsUpdate = true;
+    return texture;
   }
 
   /**
@@ -131,12 +172,9 @@ export class AssetService {
     this.meshes.clear();
     this.textures.forEach((texture) => texture.dispose());
     this.textures.clear();
-  }
-
-  private changeColor(color: THREE.ColorRepresentation) {
-    const actual = new THREE.Color(color);
-    this.solidColorTexture = new THREE.DataTexture(new Uint8Array([actual.r, actual.g, actual.b, 255]), 1, 1, THREE.RGBAFormat);
-    this.solidColorTexture.needsUpdate = true;
+    this.solidColorTextures.forEach((texture) => texture.dispose());
+    this.solidColorTextures.clear();
+    this.fallbackTexture.dispose();
   }
 
   private updateServiceState(serviceState: ServiceState) {

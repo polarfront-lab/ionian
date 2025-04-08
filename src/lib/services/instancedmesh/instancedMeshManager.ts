@@ -19,14 +19,10 @@ export class InstancedMeshManager {
   private size: number;
   private mesh: THREE.InstancedMesh;
 
-  private readonly matcapMaterial: THREE.ShaderMaterial;
+  private readonly shaderMaterial: THREE.ShaderMaterial;
   private readonly fallbackGeometry: THREE.BufferGeometry;
 
   private readonly uniforms: MaterialUniforms;
-
-  private originColor: THREE.ColorRepresentation | null;
-  private destinationColor: THREE.ColorRepresentation | null;
-
   private geometries: Map<string, THREE.BufferGeometry>;
   private uvRefsCache: Map<number, THREE.InstancedBufferAttribute>;
 
@@ -42,8 +38,6 @@ export class InstancedMeshManager {
     this.uvRefsCache = new Map();
 
     this.previousScale = { x: 1, y: 1, z: 1 };
-    this.originColor = 'grey';
-    this.destinationColor = 'grey';
 
     this.uniforms = {
       uTime: { value: 0 },
@@ -54,17 +48,15 @@ export class InstancedMeshManager {
       uDestinationTexture: { value: null },
     };
 
-    this.matcapMaterial = new THREE.ShaderMaterial({
+    this.shaderMaterial = new THREE.ShaderMaterial({
       uniforms: this.uniforms,
       vertexShader: instanceVertexShader,
       fragmentShader: instanceFragmentShader,
     });
 
-    this.setOriginColor(this.originColor);
-    this.setDestinationColor(this.destinationColor);
-
     this.fallbackGeometry = new THREE.BoxGeometry(0.001, 0.001, 0.001);
-    this.mesh = this.createInstancedMesh(initialSize, this.fallbackGeometry, this.matcapMaterial);
+    this.mesh = this.createInstancedMesh(initialSize, this.fallbackGeometry, this.shaderMaterial);
+    this.mesh.material = this.shaderMaterial;
   }
 
   /**
@@ -86,24 +78,10 @@ export class InstancedMeshManager {
     }
   }
 
-  /**
-   * Sets the matcap texture.
-   * @param matcap The matcap texture to set.
-   */
-  setOriginMatcap(matcap: THREE.Texture) {
-    this.disposeSolidColorOriginTexture();
-    this.matcapMaterial.uniforms.uOriginTexture.value = matcap;
-  }
-
-  setDestinationMatcap(matcap: THREE.Texture) {
-    this.disposeSolidColorDestinationTexture();
-    this.matcapMaterial.uniforms.uDestinationTexture.value = matcap;
-  }
-
-  setProgress(float: number) {
-    float = Math.max(0, float);
-    float = Math.min(1, float);
-    this.matcapMaterial.uniforms.uProgress.value = float;
+  updateTextureInterpolation(textureA: THREE.Texture, textureB: THREE.Texture, progress: number) {
+    this.uniforms.uOriginTexture.value = textureA;
+    this.uniforms.uDestinationTexture.value = textureB;
+    this.uniforms.uProgress.value = progress;
   }
 
   setGeometrySize(size: THREE.Vector3Like) {
@@ -116,7 +94,7 @@ export class InstancedMeshManager {
    * Use the matcap material for the instanced mesh.
    */
   useMatcapMaterial() {
-    this.mesh.material = this.matcapMaterial;
+    this.mesh.material = this.shaderMaterial;
   }
 
   /**
@@ -135,7 +113,7 @@ export class InstancedMeshManager {
    * @param texture The velocity texture to update with.
    */
   updateVelocityTexture(texture: THREE.Texture) {
-    this.matcapMaterial.uniforms.uVelocity.value = texture;
+    this.shaderMaterial.uniforms.uVelocity.value = texture;
   }
 
   /**
@@ -143,7 +121,7 @@ export class InstancedMeshManager {
    * @param texture The position texture to update with.
    */
   updatePositionTexture(texture: THREE.Texture) {
-    this.matcapMaterial.uniforms.uTexture.value = texture;
+    this.shaderMaterial.uniforms.uTexture.value = texture;
   }
 
   /**
@@ -171,9 +149,7 @@ export class InstancedMeshManager {
     this.mesh.dispose();
 
     this.geometries.forEach((geometry) => geometry.dispose());
-    this.disposeSolidColorOriginTexture();
-    this.disposeSolidColorDestinationTexture();
-    this.matcapMaterial.dispose();
+    this.shaderMaterial.dispose();
 
     this.uvRefsCache.clear();
     this.geometries.clear();
@@ -204,18 +180,6 @@ export class InstancedMeshManager {
     }
 
     previous?.dispose();
-  }
-
-  setOriginColor(color: THREE.ColorRepresentation) {
-    this.disposeSolidColorOriginTexture();
-    this.originColor = color;
-    this.uniforms.uOriginTexture.value = this.createSolidColorDataTexture(color);
-  }
-
-  setDestinationColor(color: THREE.ColorRepresentation) {
-    this.disposeSolidColorDestinationTexture();
-    this.destinationColor = color;
-    this.uniforms.uDestinationTexture.value = this.createSolidColorDataTexture(color);
   }
 
   /**
@@ -258,51 +222,5 @@ export class InstancedMeshManager {
     geometry.setAttribute('uvRef', this.createUVRefs(size));
     const count = size * size;
     return new THREE.InstancedMesh(geometry, material, count);
-  }
-
-  private createSolidColorDataTexture(color: THREE.ColorRepresentation, size: number = 16): THREE.DataTexture {
-    const col = new THREE.Color(color);
-    const width = size;
-    const height = size;
-    const data = new Uint8Array(width * height * 4); // RGBA
-
-    const r = Math.floor(col.r * 255);
-    const g = Math.floor(col.g * 255);
-    const b = Math.floor(col.b * 255);
-
-    for (let i = 0; i < width * height; i++) {
-      const index = i * 4;
-      data[index] = r;
-      data[index + 1] = g;
-      data[index + 2] = b;
-      data[index + 3] = 255; // Alpha
-    }
-
-    const texture = new THREE.DataTexture(data, width, height, THREE.RGBAFormat);
-    texture.type = THREE.UnsignedByteType;
-    texture.wrapS = THREE.RepeatWrapping; // Or ClampToEdgeWrapping
-    texture.wrapT = THREE.RepeatWrapping; // Or ClampToEdgeWrapping
-    texture.minFilter = THREE.NearestFilter; // Ensure sharp color
-    texture.magFilter = THREE.NearestFilter;
-    texture.needsUpdate = true;
-    return texture;
-  }
-
-  private disposeSolidColorOriginTexture() {
-    if (this.originColor) {
-      this.originColor = null;
-      if (this.uniforms.uOriginTexture.value) {
-        this.uniforms.uOriginTexture.value.dispose();
-      }
-    }
-  }
-
-  private disposeSolidColorDestinationTexture() {
-    if (this.destinationColor) {
-      this.destinationColor = null;
-      if (this.uniforms.uDestinationTexture.value) {
-        this.uniforms.uDestinationTexture.value.dispose();
-      }
-    }
   }
 }

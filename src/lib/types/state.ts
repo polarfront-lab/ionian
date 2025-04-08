@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { TextureSequence } from './index';
 
 /**
  * Represents the current state of the system.
@@ -14,10 +15,8 @@ export interface EngineState {
   positionalTractionForce: number;
   maxRepelDistance: number;
 
-  originMatcapID: string;
-  destinationMatcapID: string;
-  matcapTransitionProgress: number;
-  instanceGeometryScale: THREE.Vector3Like;
+  textureSequence: TextureSequence;
 
+  instanceGeometryScale: THREE.Vector3Like;
   useIntersect: boolean;
 }

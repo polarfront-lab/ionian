@@ -6,7 +6,15 @@ import { InstancedMeshManager } from '@/lib/services/instancedmesh/instancedMesh
 import { IntersectionService } from '@/lib/services/intersection/intersectionService';
 import { SimulationRendererService } from '@/lib/services/simulation/simulationRendererService';
 import { TransitionService } from '@/lib/services/transition/transitionService';
-import { Callback, EasingFunction, ServiceState, ServiceType, TransitionCallback, TransitionDetail, TransitionOptions } from '@/lib/types';
+import {
+  EasingFunction,
+  ServiceState,
+  ServiceType,
+  TextureSequence,
+  TextureSequenceItem,
+  TransitionDetail,
+  TransitionOptions
+} from '@/lib/types';
 import { EngineState } from '@/lib/types/state';
 import { clamp } from '@/lib/utils';
 import * as THREE from 'three';
@@ -68,11 +76,11 @@ export class ParticlesEngine {
     this.dataTextureManager = new DataTextureService(this.eventEmitter, textureSize);
     this.simulationRendererService = new SimulationRendererService(this.eventEmitter, textureSize, this.renderer);
     this.instancedMeshManager = new InstancedMeshManager(textureSize);
-    this.instancedMeshManager.useMatcapMaterial();
     this.scene.add(this.instancedMeshManager.getMesh());
 
     this.intersectionService = new IntersectionService(this.eventEmitter, camera);
     if (!useIntersection) this.intersectionService.setActive(false);
+    this.setOverallProgress(0, false);
 
     this.eventEmitter.on('interactionPositionUpdated', this.handleInteractionPositionUpdated.bind(this));
   }
@@ -92,52 +100,10 @@ export class ParticlesEngine {
     this.instancedMeshManager.updatePositionTexture(this.simulationRendererService.getPositionTexture());
   }
 
-  setOriginMatcap(matcapID: string, override: boolean = false) {
-    if (override) this.eventEmitter.emit('transitionCancelled', { type: 'matcap' });
-    this.engineState.originMatcapID = matcapID;
-    this.instancedMeshManager.setOriginMatcap(this.assetService.getMatcap(matcapID));
-  }
-
-  setDestinationMatcap(matcapID: string, override: boolean = false) {
-    if (override) this.eventEmitter.emit('transitionCancelled', { type: 'matcap' });
-    this.engineState.destinationMatcapID = matcapID;
-    this.instancedMeshManager.setDestinationMatcap(this.assetService.getMatcap(matcapID));
-  }
-
-  setOriginColor(color: THREE.ColorRepresentation, override: boolean = false) {
-    if (override) this.eventEmitter.emit('transitionCancelled', { type: 'matcap' });
-    this.instancedMeshManager.setOriginColor(color);
-  }
-
-  setDestinationColor(color: THREE.ColorRepresentation, override: boolean = false) {
-    if (override) this.eventEmitter.emit('transitionCancelled', { type: 'matcap' });
-    this.instancedMeshManager.setDestinationColor(color);
-  }
-
-  setOriginTexture(id: string | THREE.ColorRepresentation, override: boolean = false) {
-    if (override) this.eventEmitter.emit('transitionCancelled', { type: 'matcap' });
-
-    if (typeof id === 'string' && this.assetService.hasMatcap(id)) {
-      this.setOriginMatcap(id);
-    } else {
-      this.setOriginColor(id);
-    }
-  }
-
-  setDestinationTexture(id: string | THREE.ColorRepresentation, override: boolean = false) {
-    if (override) this.eventEmitter.emit('transitionCancelled', { type: 'matcap' });
-    if (typeof id === 'string' && this.assetService.hasMatcap(id)) {
-      this.setDestinationMatcap(id);
-    } else {
-      this.setDestinationColor(id);
-    }
-  }
-
-  setMatcapProgress(progress: number, override: boolean = false) {
-    const clampedProgress = clamp(progress, 0.0, 1.0);
-    if (override) this.eventEmitter.emit('transitionCancelled', { type: 'matcap' });
-    this.engineState.matcapTransitionProgress = clampedProgress;
-    this.instancedMeshManager.setProgress(clampedProgress);
+  setTextureSequence(sequence: TextureSequence) {
+    this.engineState.textureSequence = sequence;
+    this.eventEmitter.emit('textureSequenceUpdated', { sequence });
+    this.setOverallProgress(0, false);
   }
 
   // --- Update setTextureSize ---
@@ -171,10 +137,8 @@ export class ParticlesEngine {
     this.intersectionService.setOverallProgress(this.engineState.overallProgress); // Also update intersection
 
     // Update InstancedMeshManager appearance parameters
-    this.instancedMeshManager.setOriginMatcap(this.assetService.getMatcap(this.engineState.originMatcapID));
-    this.instancedMeshManager.setDestinationMatcap(this.assetService.getMatcap(this.engineState.destinationMatcapID));
-    this.instancedMeshManager.setProgress(this.engineState.matcapTransitionProgress);
     this.instancedMeshManager.setGeometrySize(this.engineState.instanceGeometryScale);
+    this.setOverallProgress(this.engineState.overallProgress, false);
   }
 
   registerMesh(id: string, mesh: THREE.Mesh) {
@@ -272,14 +236,16 @@ export class ParticlesEngine {
         dataTexture: this.meshSequenceAtlasTexture,
         textureSize: this.engineState.textureSize, // Pass the size of the *output* GPGPU texture
         numMeshes: this.engineState.meshSequence.length, // Use the potentially updated count
-        singleTextureSize: this.engineState.textureSize, // Size of one mesh's data within atlas
+        singleTextureSize: this.engineState.textureSize // Size of one mesh's data within atlas
       });
       // Set initial progress in simulation (should be 0 after sequence change)
       this.simulationRendererService.setOverallProgress(this.engineState.overallProgress);
 
       // Update IntersectionService with the valid meshes
       this.intersectionService.setMeshSequence(meshes);
-      this.intersectionService.setOverallProgress(this.engineState.overallProgress); // Set initial progress
+      this.intersectionService.setOverallProgress(this.engineState.overallProgress);
+
+      this.setOverallProgress(0, false);
     } catch (error) {
       console.error('Failed during mesh sequence setup:', error);
       this.meshSequenceAtlasTexture = null;
@@ -301,96 +267,8 @@ export class ParticlesEngine {
     this.engineState.overallProgress = clampedProgress;
     this.simulationRendererService.setOverallProgress(clampedProgress);
     this.intersectionService.setOverallProgress(clampedProgress);
-  }
-
-  // --- Transition scheduling methods remain the same ---
-  scheduleMatcapTransition(
-    originMatcapID: string,
-    destinationMatcapID: string,
-    easing: EasingFunction = linear,
-    duration: number = 1000,
-    override: boolean = false,
-    options: TransitionOptions = {},
-  ) {
-    if (override) this.eventEmitter.emit('transitionCancelled', { type: 'matcap' });
-    const handleProgressUpdate = (transitionProgress: number) => {
-      this.setMatcapProgress(transitionProgress, false); // Pass override=false here
-      options.onTransitionProgress?.(transitionProgress);
-    };
-    this.transitionService.enqueue(
-      'matcap',
-      { easing, duration },
-      {
-        ...options,
-        onTransitionProgress: handleProgressUpdate,
-        onTransitionBegin: () => {
-          this.setOriginMatcap(originMatcapID, false);
-          this.setDestinationMatcap(destinationMatcapID, false);
-          this.setMatcapProgress(0, false);
-          options.onTransitionBegin?.();
-        },
-        onTransitionFinished: () => {
-          this.setMatcapProgress(1, false);
-          options.onTransitionFinished?.();
-        },
-        onTransitionCancelled: options.onTransitionCancelled,
-      },
-    );
-  }
-
-  scheduleTextureTransition(
-    origin: string | THREE.ColorRepresentation,
-    destination: string | THREE.ColorRepresentation,
-    options: {
-      easing?: EasingFunction;
-      duration?: number;
-      override?: boolean;
-      onTransitionBegin?: Callback;
-      onTransitionProgress?: TransitionCallback;
-      onTransitionFinished?: Callback;
-      onTransitionCancelled?: Callback;
-    } = {}, // Default to empty object
-  ) {
-    const easing = options?.easing ?? linear;
-    const duration = options?.duration ?? 1000;
-    const userCallbacks = {
-      // Extract user callbacks
-      onTransitionBegin: options?.onTransitionBegin,
-      onTransitionProgress: options?.onTransitionProgress,
-      onTransitionFinished: options?.onTransitionFinished,
-      onTransitionCancelled: options?.onTransitionCancelled,
-    };
-
-    if (options?.override) this.eventEmitter.emit('transitionCancelled', { type: 'matcap' });
-
-    const handleProgressUpdate = (transitionProgress: number) => {
-      this.setMatcapProgress(transitionProgress, false); // Pass override=false
-      userCallbacks.onTransitionProgress?.(transitionProgress);
-    };
-
-    this.transitionService.enqueue(
-      'matcap', // Still uses matcap type internally
-      { easing, duration },
-      {
-        ...userCallbacks, // Pass user callbacks
-        onTransitionProgress: handleProgressUpdate,
-        onTransitionBegin: () => {
-          this.setOriginTexture(origin);
-          this.setDestinationTexture(destination);
-          this.setMatcapProgress(0);
-          userCallbacks.onTransitionBegin?.();
-        },
-        onTransitionFinished: () => {
-          this.setMatcapProgress(1);
-          // Optional: Set origin to destination
-          // this.setOriginTexture(destination);
-          userCallbacks.onTransitionFinished?.();
-        },
-        onTransitionCancelled: () => {
-          userCallbacks.onTransitionCancelled?.();
-        },
-      },
-    );
+    const { textureA, textureB, localProgress } = this.calculateTextureInterpolation(progress);
+    this.instancedMeshManager.updateTextureInterpolation(textureA, textureB, localProgress);
   }
 
   /**
@@ -406,7 +284,7 @@ export class ParticlesEngine {
     duration: number = 1000,
     easing: EasingFunction = linear,
     options: TransitionOptions = {},
-    override: boolean = true, // Default to override for simplicity
+    override: boolean = true // Default to override for simplicity
   ) {
     if (override) this.eventEmitter.emit('transitionCancelled', { type: 'mesh-sequence' });
     const startProgress = this.engineState.overallProgress;
@@ -427,7 +305,7 @@ export class ParticlesEngine {
         this.setOverallProgress(targetProgress, false);
         options.onTransitionFinished?.();
       },
-      onTransitionCancelled: options.onTransitionCancelled,
+      onTransitionCancelled: options.onTransitionCancelled
     };
     this.transitionService.enqueue('mesh-sequence', transitionDetail, transitionOptions);
   }
@@ -490,15 +368,13 @@ export class ParticlesEngine {
       textureSize: params.textureSize,
       meshSequence: [], // ADDED
       overallProgress: 0, // ADDED
-      originMatcapID: '',
-      destinationMatcapID: '',
-      matcapTransitionProgress: 0,
+      textureSequence: [],
       velocityTractionForce: 0.1,
       positionalTractionForce: 0.1,
       maxRepelDistance: 0.3,
       pointerPosition: { x: 0, y: 0 },
       instanceGeometryScale: { x: 1, y: 1, z: 1 },
-      useIntersect: params.useIntersection ?? true,
+      useIntersect: params.useIntersection ?? true
     };
   }
 
@@ -508,11 +384,68 @@ export class ParticlesEngine {
       'instanced-mesh': 'created',
       matcap: 'created',
       simulation: 'created',
-      asset: 'created',
+      asset: 'created'
     };
   }
 
   private handleInteractionPositionUpdated({ position }: { position: THREE.Vector4Like }) {
     this.simulationRendererService.setInteractionPosition(position);
+  }
+
+  private calculateTextureInterpolation(progress: number): {
+    textureA: THREE.Texture,
+    textureB: THREE.Texture,
+    localProgress: number
+  } {
+    const sequence = this.engineState.textureSequence;
+    const numItems = sequence.length;
+
+    if (numItems === 0) {
+      const defaultTex = this.assetService.getFallbackTexture();
+      return { textureA: defaultTex, textureB: defaultTex, localProgress: 0 };
+    }
+    if (numItems === 1) {
+      const tex = this.getTextureForSequenceItem(sequence[0]);
+      return { textureA: tex, textureB: tex, localProgress: 0 };
+    }
+
+    const totalSegments = numItems - 1;
+    const progressPerSegment = 1.0 / totalSegments;
+    const scaledProgress = progress * totalSegments;
+
+    let indexA = Math.floor(scaledProgress);
+    let indexB = indexA + 1;
+
+    indexA = Math.max(0, Math.min(indexA, totalSegments));
+    indexB = Math.max(0, Math.min(indexB, totalSegments));
+
+    let localProgress = 0;
+    if (progressPerSegment > 0) {
+      localProgress = (progress - (indexA * progressPerSegment)) / progressPerSegment;
+    }
+
+    if (progress >= 1.0) {
+      indexA = totalSegments;
+      indexB = totalSegments;
+      localProgress = 1.0;
+    }
+
+    localProgress = Math.max(0, Math.min(localProgress, 1.0));
+
+    const itemA = sequence[indexA];
+    const itemB = sequence[indexB];
+
+    const textureA = this.getTextureForSequenceItem(itemA);
+    const textureB = this.getTextureForSequenceItem(itemB);
+
+    return { textureA, textureB, localProgress: localProgress };
+  }
+
+  private getTextureForSequenceItem(item: TextureSequenceItem): THREE.Texture {
+    if (item.type === 'matcap') {
+      return this.assetService.getMatcapTexture(item.id);
+    } else {
+      return this.assetService.getSolidColorTexture(item.value);
+    }
   }
 }
