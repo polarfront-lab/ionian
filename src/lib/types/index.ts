@@ -1,4 +1,4 @@
-import * as THREE from 'three';
+import * as THREE from "three";
 
 /**
  * Represents the data of a mesh, including its position, normal, and scale.
@@ -16,14 +16,9 @@ export interface EasingFunction {
   (n: number): number;
 }
 
-export type DataTextureEntry = {
-  textureSize: number;
-  dataTexture: THREE.DataTexture;
-};
-
 export type ServiceType = 'data-texture' | 'matcap' | 'instanced-mesh' | 'simulation' | 'asset';
 export type ServiceState = 'created' | 'initializing' | 'ready' | 'disposed' | 'error' | 'loading';
-export type TransitionType = 'data-texture' | 'matcap' | 'mesh-sequence';
+export type TransitionType = 'data-texture' | 'texture' | 'mesh-sequence';
 
 export interface TransitionDetail {
   duration: number;
@@ -38,3 +33,9 @@ export type TransitionOptions = {
   onTransitionFinished?: Callback;
   onTransitionCancelled?: Callback;
 };
+
+export type TextureSequenceItem =
+  | { type: 'matcap'; id: string }
+  | { type: 'color'; value: THREE.ColorRepresentation }; // THREE.ColorRepresentation 사용
+
+export type TextureSequence = TextureSequenceItem[];
