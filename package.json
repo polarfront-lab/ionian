@@ -30,13 +30,13 @@
     "particles",
     "simulation"
   ],
-  "author": "Seunghyun Bae <state303@dsub.io> (https://echovisionlab.com)",
+  "author": "state303 <state303@dsub.io>",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/polarfront-lab/ionian/issues"
   },
   "homepage": "https://github.com/polarfront-lab/ionian#readme",
-  "dependencies": {
+  "peerDependencies": {
     "mitt": "^3.0.1",
     "three": "^0.175.0",
     "three-stdlib": "^2.35.15"
