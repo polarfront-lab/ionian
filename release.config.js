@@ -1,0 +1,18 @@
+module.exports = {
+  plugins: [
+    '@semantic-release/commit-analyzer',
+    '@semantic-release/release-notes-generator',
+    '@semantic-release/changelog',
+    '@semantic-release/git',
+    '@semantic-release/github',
+  ],
+  branches: [
+    'main',
+    '+([0-9])?(.{+([0-9]),x}).x',
+    {
+      name: 'hotfix/*',
+      prerelease: true,
+      channel: 'hotfix',
+    },
+  ],
+};
