@@ -29,11 +29,22 @@ export class TransitionService {
   private readonly transitions: Map<TransitionType, Array<TransitionQueueItem>> = new Map();
   private readonly execStatus: ExecutionStatusMap;
   private readonly ongoingTransitions: Map<TransitionType, OngoingTransition> = new Map();
+  private readonly boundHandleTransitionCancelled: (payload: { type: TransitionType }) => void;
 
   constructor(eventEmitter: DefaultEventEmitter) {
     this.eventEmitter = eventEmitter;
     this.execStatus = new ExecutionStatusMap();
-    this.eventEmitter.on('transitionCancelled', this.handleTransitionCancelledEvent.bind(this));
+    this.boundHandleTransitionCancelled = this.handleTransitionCancelledEvent.bind(this);
+    this.eventEmitter.on('transitionCancelled', this.boundHandleTransitionCancelled);
+  }
+
+  dispose(): void {
+    this.eventEmitter.off('transitionCancelled', this.boundHandleTransitionCancelled);
+    this.ongoingTransitions.forEach((transition) => {
+      transition.cancelled = true;
+    });
+    this.ongoingTransitions.clear();
+    this.transitions.clear();
   }
 
   /**

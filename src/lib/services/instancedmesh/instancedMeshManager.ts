@@ -127,19 +127,20 @@ export class InstancedMeshManager {
   /**
    * Resizes or replaces the instanced mesh.
    * @param size The new size of the instanced mesh.
-   * @returns An object containing the updated mesh, the previous mesh, and a boolean indicating whether the mesh was updated.
+   * @returns The updated instanced mesh.
    */
-  resize(size: number): { current: THREE.InstancedMesh; previous: THREE.InstancedMesh } {
-    if (this.size === size) return { current: this.mesh, previous: this.mesh };
+  resize(size: number): THREE.InstancedMesh {
+    if (this.size === size) return this.mesh;
 
     this.size = size;
 
-    // create new instances since it is greater than the last known value
     const prev = this.mesh;
-
     this.mesh = this.createInstancedMesh(size, prev.geometry, prev.material);
 
-    return { current: this.mesh, previous: prev };
+    // Dispose previous mesh (geometry/material are shared, so only dispose instance buffers)
+    prev.dispose();
+
+    return this.mesh;
   }
 
   /**
@@ -150,6 +151,7 @@ export class InstancedMeshManager {
 
     this.geometries.forEach((geometry) => geometry.dispose());
     this.shaderMaterial.dispose();
+    this.fallbackGeometry.dispose();
 
     this.uvRefsCache.clear();
     this.geometries.clear();
