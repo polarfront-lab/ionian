@@ -8,5 +8,6 @@ plugins:
 branches:
   - main
   - "+([0-9])?(.{+([0-9]),x}).x"
-  - name: "(hotfix/**)"
-    prerelease: '${name.replace(/^hotfix\//g, "hotfix-")}'
+  - name: "hotfix/*"
+    prerelease: '${name.split("/").join("-")}'
+    channel: "hotfix"
