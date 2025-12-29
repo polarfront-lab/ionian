@@ -29,10 +29,6 @@ jobs:
         with:
           version: 10
 
-      - name: Prepare prerelease semantic
-        if: github.ref != 'refs/heads/main'
-        run: mv .releaserc.prerelease.yaml .releaserc.yaml
-
       - uses: actions/setup-node@v3
         name: Setup Node.js
         with:
