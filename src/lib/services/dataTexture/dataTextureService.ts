@@ -56,7 +56,7 @@ export class DataTextureService {
     return dataTexture;
   }
 
-  async dispose() {
+  dispose(): void {
     this.dataTextures.forEach((texture) => texture.dispose());
     this.dataTextures.clear();
     if (this.currentAtlas) {
@@ -163,6 +163,10 @@ function sampleMesh(meshData: MeshData, size: number): Float32Array {
       data[4 * index + 3] = (Math.random() - 0.5) * 0.01;
     }
   }
+
+  // Clean up temporary resources
+  geometry.dispose();
+  material.dispose();
 
   return data;
 }

@@ -56,6 +56,10 @@ export class ParticlesEngine {
 
   public eventEmitter: DefaultEventEmitter;
 
+  // Bound event handlers for proper cleanup
+  private readonly boundHandleServiceStateUpdated: (payload: { type: ServiceType; state: ServiceState }) => void;
+  private readonly boundHandleInteractionPositionUpdated: (payload: { position: THREE.Vector4Like }) => void;
+
   /**
    * Creates a new ParticlesEngine instance.
    * @param params The parameters for creating the instance.
@@ -65,7 +69,12 @@ export class ParticlesEngine {
 
     this.eventEmitter = new DefaultEventEmitter();
     this.serviceStates = this.getInitialServiceStates();
-    this.eventEmitter.on('serviceStateUpdated', this.handleServiceStateUpdated.bind(this));
+
+    // Store bound handlers for proper cleanup
+    this.boundHandleServiceStateUpdated = this.handleServiceStateUpdated.bind(this);
+    this.boundHandleInteractionPositionUpdated = this.handleInteractionPositionUpdated.bind(this);
+
+    this.eventEmitter.on('serviceStateUpdated', this.boundHandleServiceStateUpdated);
 
     this.scene = scene;
     this.renderer = renderer;
@@ -82,7 +91,7 @@ export class ParticlesEngine {
     if (!useIntersection) this.intersectionService.setActive(false);
     this.setOverallProgress(0, false);
 
-    this.eventEmitter.on('interactionPositionUpdated', this.handleInteractionPositionUpdated.bind(this));
+    this.eventEmitter.on('interactionPositionUpdated', this.boundHandleInteractionPositionUpdated);
   }
 
   /**
@@ -116,11 +125,11 @@ export class ParticlesEngine {
     // Resize core services
     this.dataTextureManager.setTextureSize(size); // This will clear its cache
     this.simulationRendererService.setTextureSize(size); // Recreates GPGPU
-    this.instancedMeshManager.resize(size);
 
-    if (this.engineState.meshSequence.length > 0) {
-      await this.setMeshSequence(this.engineState.meshSequence);
-    }
+    // Remove old mesh from scene, resize, and add new mesh
+    this.scene.remove(this.instancedMeshManager.getMesh());
+    this.instancedMeshManager.resize(size);
+    this.scene.add(this.instancedMeshManager.getMesh());
 
     // Re-apply mesh sequence if it exists. This regenerates the atlas with the new size
     // and updates simulation/intersection services via setMeshSequence internal calls.
@@ -354,13 +363,19 @@ export class ParticlesEngine {
     if (this.scene && this.instancedMeshManager) {
       this.scene.remove(this.instancedMeshManager.getMesh());
     }
+
+    // Remove event listeners before disposing emitter
+    this.eventEmitter.off('serviceStateUpdated', this.boundHandleServiceStateUpdated);
+    this.eventEmitter.off('interactionPositionUpdated', this.boundHandleInteractionPositionUpdated);
+
     // Dispose services safely
     this.simulationRendererService?.dispose();
     this.instancedMeshManager?.dispose();
     this.intersectionService?.dispose();
     this.assetService?.dispose();
     this.dataTextureManager?.dispose();
-    this.eventEmitter?.dispose(); // Dispose event emitter too
+    this.transitionService?.dispose();
+    this.eventEmitter?.dispose();
   }
 
   private initialEngineState(params: ParticlesEngineParameters): EngineState {
