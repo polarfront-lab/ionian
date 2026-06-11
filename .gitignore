@@ -1,6 +1,7 @@
 # node
 /node_modules
 /dist
+/.tmp
 
 # jetbrains
 /.idea

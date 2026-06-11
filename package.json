@@ -4,6 +4,13 @@
   "description": "ThreeJS Collection Set",
   "main": "dist/ionian.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/ionian.js",
+      "default": "./dist/ionian.js"
+    }
+  },
   "files": [
     "dist"
   ],
@@ -12,7 +19,11 @@
     "dev": "tsc && vite --watch",
     "start": "vite --host --open",
     "build": "tsc && vite build",
-    "build:types": "dts-bundle-generator --config ./dts-bundle-generator.config.ts",
+    "build:types": "dts-bundle-generator --config ./dts-bundle-generator.config.cjs",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "pack:smoke": "node scripts/package-smoke.mjs",
+    "validate": "pnpm test:coverage && pnpm run build && pnpm run build:types && pnpm run pack:smoke",
     "prepare": "husky",
     "fmt": "prettier --write --list-different  ./src"
   },
@@ -38,8 +49,8 @@
   "homepage": "https://github.com/polarfront-lab/ionian#readme",
   "peerDependencies": {
     "mitt": "^3.0.1",
-    "three": "^0.175.0",
-    "three-stdlib": "^2.35.15"
+    "three": ">=0.175.0 <0.185.0",
+    "three-stdlib": ">=2.35.15 <3.0.0"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.8.0",
@@ -55,6 +66,7 @@
     "@types/node": "^22.14.0",
     "@types/stats.js": "^0.17.3",
     "@types/three": "^0.175.0",
+    "@vitest/coverage-v8": "^4.1.8",
     "@typescript-eslint/eslint-plugin": "^8.29.1",
     "dts-bundle-generator": "^9.5.1",
     "eslint": "^9.24.0",
@@ -67,6 +79,7 @@
     "ts-node": "^10.9.2",
     "typescript": "^5.8.3",
     "vite": "^6.2.5",
+    "vitest": "^4.1.8",
     "vite-plugin-dts": "^4.5.3",
     "vite-plugin-node-polyfills": "^0.23.0"
   }

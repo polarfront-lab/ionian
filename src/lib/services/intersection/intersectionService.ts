@@ -12,10 +12,10 @@ export class IntersectionService {
 
   private camera?: THREE.Camera;
 
-  private meshSequenceGeometries: THREE.BufferGeometry[] = []; // ADDED: Store cloned geometries
-  private meshSequenceUUIDs: string[] = []; // ADDED: Track UUIDs to avoid redundant cloning
+  private meshSequenceGeometries: THREE.BufferGeometry[] = [];
+  private meshSequenceUUIDs: string[] = [];
 
-  private overallProgress: number = 0; // ADDED: Store overall progress (0-1)
+  private overallProgress: number = 0;
   private intersectionMesh = new THREE.Mesh(); // Use a single mesh for intersection target
 
   private geometryNeedsUpdate: boolean;

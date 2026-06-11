@@ -8,8 +8,8 @@ export interface EngineState {
   pointerPosition: THREE.Vector2Like;
   textureSize: number;
 
-  meshSequence: string[]; // ADDED: Array of mesh IDs in sequence
-  overallProgress: number; // ADDED: Progress through the entire sequence (0.0 to 1.0)
+  meshSequence: string[];
+  overallProgress: number;
 
   velocityTractionForce: number;
   positionalTractionForce: number;

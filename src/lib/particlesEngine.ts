@@ -1,20 +1,13 @@
 import { linear } from '@/lib/easing';
 import { DefaultEventEmitter } from '@/lib/events/defaultEventEmitter';
-import { AssetService } from '@/lib/services/assets/assetService';
+import { AssetService, LoadMeshOptions } from '@/lib/services/assets/assetService';
 import { DataTextureService } from '@/lib/services/dataTexture/dataTextureService';
 import { InstancedMeshManager } from '@/lib/services/instancedmesh/instancedMeshManager';
 import { IntersectionService } from '@/lib/services/intersection/intersectionService';
 import { SimulationRendererService } from '@/lib/services/simulation/simulationRendererService';
 import { TransitionService } from '@/lib/services/transition/transitionService';
-import {
-  EasingFunction,
-  ServiceState,
-  ServiceType,
-  TextureSequence,
-  TextureSequenceItem,
-  TransitionDetail,
-  TransitionOptions
-} from '@/lib/types';
+import { resolveSequenceInterpolation } from '@/lib/textureSequence';
+import { EasingFunction, ServiceState, ServiceType, TextureSequence, TextureSequenceItem, TransitionDetail, TransitionOptions } from '@/lib/types';
 import { EngineState } from '@/lib/types/state';
 import { clamp } from '@/lib/utils';
 import * as THREE from 'three';
@@ -22,12 +15,13 @@ import * as THREE from 'three';
 /**
  * Parameters for creating a ParticlesEngine instance.
  */
-type ParticlesEngineParameters = {
+export type ParticlesEngineParameters = {
   textureSize: number;
   scene: THREE.Scene;
   renderer: THREE.WebGLRenderer;
   camera?: THREE.Camera;
   useIntersection?: boolean;
+  dracoDecoderPath?: string | null;
 };
 
 type ServiceStates = Record<ServiceType, ServiceState>;
@@ -52,7 +46,8 @@ export class ParticlesEngine {
 
   private intersectionService: IntersectionService;
 
-  private meshSequenceAtlasTexture: THREE.DataTexture | null = null; // ADDED: To store the generated atlas
+  private meshSequenceAtlasTexture: THREE.DataTexture | null = null;
+  private lastRenderElapsedTimeSeconds: number | null = null;
 
   public eventEmitter: DefaultEventEmitter;
 
@@ -71,7 +66,7 @@ export class ParticlesEngine {
     this.renderer = renderer;
     this.engineState = this.initialEngineState(params);
 
-    this.assetService = new AssetService(this.eventEmitter);
+    this.assetService = new AssetService(this.eventEmitter, { dracoDecoderPath: params.dracoDecoderPath });
     this.transitionService = new TransitionService(this.eventEmitter);
     this.dataTextureManager = new DataTextureService(this.eventEmitter, textureSize);
     this.simulationRendererService = new SimulationRendererService(this.eventEmitter, textureSize, this.renderer);
@@ -90,12 +85,18 @@ export class ParticlesEngine {
    * @param elapsedTime The elapsed time since the last frame.
    */
 
-  render(elapsedTime: number) {
-    const dt = elapsedTime / 1000.0; // Convert to seconds
-    this.transitionService.compute(dt);
+  render(elapsedTimeMs: number) {
+    const elapsedTimeSeconds = elapsedTimeMs / 1000.0;
+    const deltaTimeSeconds = this.lastRenderElapsedTimeSeconds === null ? 0 : Math.max(0, elapsedTimeSeconds - this.lastRenderElapsedTimeSeconds);
+    this.lastRenderElapsedTimeSeconds = elapsedTimeSeconds;
+    this.renderFrame(deltaTimeSeconds, elapsedTimeSeconds);
+  }
+
+  renderFrame(deltaTimeSeconds: number, elapsedTimeSeconds: number) {
+    this.transitionService.compute(elapsedTimeSeconds);
     this.intersectionService.calculate(this.instancedMeshManager.getMesh());
-    this.simulationRendererService.compute(dt); // Use seconds
-    this.instancedMeshManager.update(dt); // Use seconds
+    this.simulationRendererService.compute(deltaTimeSeconds);
+    this.instancedMeshManager.update(elapsedTimeSeconds);
     this.instancedMeshManager.updateVelocityTexture(this.simulationRendererService.getVelocityTexture());
     this.instancedMeshManager.updatePositionTexture(this.simulationRendererService.getPositionTexture());
   }
@@ -106,39 +107,34 @@ export class ParticlesEngine {
     this.setOverallProgress(0, false);
   }
 
-  // --- Update setTextureSize ---
   async setTextureSize(size: number) {
     if (this.engineState.textureSize === size) {
       return;
     }
+
+    const meshSequence = [...this.engineState.meshSequence];
+    const overallProgress = this.engineState.overallProgress;
+
     this.engineState.textureSize = size;
 
-    // Resize core services
-    this.dataTextureManager.setTextureSize(size); // This will clear its cache
-    this.simulationRendererService.setTextureSize(size); // Recreates GPGPU
-    this.instancedMeshManager.resize(size);
-
-    if (this.engineState.meshSequence.length > 0) {
-      await this.setMeshSequence(this.engineState.meshSequence);
+    this.dataTextureManager.setTextureSize(size);
+    this.simulationRendererService.setTextureSize(size);
+    const { current, previous } = this.instancedMeshManager.resize(size);
+    if (current !== previous) {
+      this.scene.remove(previous);
+      previous.dispose();
+      this.scene.add(current);
     }
 
-    // Re-apply mesh sequence if it exists. This regenerates the atlas with the new size
-    // and updates simulation/intersection services via setMeshSequence internal calls.
-    if (this.engineState.meshSequence.length > 0) {
-      await this.setMeshSequence(this.engineState.meshSequence);
+    if (meshSequence.length > 0) {
+      await this.setMeshSequence(meshSequence);
     }
 
-    // Update other simulation parameters (these might need re-application after GPGPU recreation)
     this.simulationRendererService.setVelocityTractionForce(this.engineState.velocityTractionForce);
     this.simulationRendererService.setPositionalTractionForce(this.engineState.positionalTractionForce);
     this.simulationRendererService.setMaxRepelDistance(this.engineState.maxRepelDistance);
-    // Ensure progress is reapplied (setMeshSequence resets it to 0, restore if needed, though usually 0 is correct after resize)
-    this.simulationRendererService.setOverallProgress(this.engineState.overallProgress);
-    this.intersectionService.setOverallProgress(this.engineState.overallProgress); // Also update intersection
-
-    // Update InstancedMeshManager appearance parameters
     this.instancedMeshManager.setGeometrySize(this.engineState.instanceGeometryScale);
-    this.setOverallProgress(this.engineState.overallProgress, false);
+    this.setOverallProgress(overallProgress, false);
   }
 
   registerMesh(id: string, mesh: THREE.Mesh) {
@@ -149,8 +145,8 @@ export class ParticlesEngine {
     this.assetService.register(id, matcap);
   }
 
-  async fetchAndRegisterMesh(id: string, url: string) {
-    return await this.assetService.loadMeshAsync(id, url);
+  async fetchAndRegisterMesh(id: string, url: string, options?: LoadMeshOptions) {
+    return await this.assetService.loadMeshAsync(id, url, options);
   }
 
   async fetchAndRegisterMatcap(id: string, url: string) {
@@ -236,7 +232,7 @@ export class ParticlesEngine {
         dataTexture: this.meshSequenceAtlasTexture,
         textureSize: this.engineState.textureSize, // Pass the size of the *output* GPGPU texture
         numMeshes: this.engineState.meshSequence.length, // Use the potentially updated count
-        singleTextureSize: this.engineState.textureSize // Size of one mesh's data within atlas
+        singleTextureSize: this.engineState.textureSize, // Size of one mesh's data within atlas
       });
       // Set initial progress in simulation (should be 0 after sequence change)
       this.simulationRendererService.setOverallProgress(this.engineState.overallProgress);
@@ -267,7 +263,7 @@ export class ParticlesEngine {
     this.engineState.overallProgress = clampedProgress;
     this.simulationRendererService.setOverallProgress(clampedProgress);
     this.intersectionService.setOverallProgress(clampedProgress);
-    const { textureA, textureB, localProgress } = this.calculateTextureInterpolation(progress);
+    const { textureA, textureB, localProgress } = this.calculateTextureInterpolation(clampedProgress);
     this.instancedMeshManager.updateTextureInterpolation(textureA, textureB, localProgress);
   }
 
@@ -284,7 +280,7 @@ export class ParticlesEngine {
     duration: number = 1000,
     easing: EasingFunction = linear,
     options: TransitionOptions = {},
-    override: boolean = true // Default to override for simplicity
+    override: boolean = true, // Default to override for simplicity
   ) {
     if (override) this.eventEmitter.emit('transitionCancelled', { type: 'mesh-sequence' });
     const startProgress = this.engineState.overallProgress;
@@ -305,7 +301,7 @@ export class ParticlesEngine {
         this.setOverallProgress(targetProgress, false);
         options.onTransitionFinished?.();
       },
-      onTransitionCancelled: options.onTransitionCancelled
+      onTransitionCancelled: options.onTransitionCancelled,
     };
     this.transitionService.enqueue('mesh-sequence', transitionDetail, transitionOptions);
   }
@@ -366,15 +362,15 @@ export class ParticlesEngine {
   private initialEngineState(params: ParticlesEngineParameters): EngineState {
     return {
       textureSize: params.textureSize,
-      meshSequence: [], // ADDED
-      overallProgress: 0, // ADDED
+      meshSequence: [],
+      overallProgress: 0,
       textureSequence: [],
       velocityTractionForce: 0.1,
       positionalTractionForce: 0.1,
       maxRepelDistance: 0.3,
       pointerPosition: { x: 0, y: 0 },
       instanceGeometryScale: { x: 1, y: 1, z: 1 },
-      useIntersect: params.useIntersection ?? true
+      useIntersect: params.useIntersection ?? true,
     };
   }
 
@@ -384,7 +380,7 @@ export class ParticlesEngine {
       'instanced-mesh': 'created',
       matcap: 'created',
       simulation: 'created',
-      asset: 'created'
+      asset: 'created',
     };
   }
 
@@ -393,9 +389,9 @@ export class ParticlesEngine {
   }
 
   private calculateTextureInterpolation(progress: number): {
-    textureA: THREE.Texture,
-    textureB: THREE.Texture,
-    localProgress: number
+    textureA: THREE.Texture;
+    textureB: THREE.Texture;
+    localProgress: number;
   } {
     const sequence = this.engineState.textureSequence;
     const numItems = sequence.length;
@@ -409,28 +405,7 @@ export class ParticlesEngine {
       return { textureA: tex, textureB: tex, localProgress: 0 };
     }
 
-    const totalSegments = numItems - 1;
-    const progressPerSegment = 1.0 / totalSegments;
-    const scaledProgress = progress * totalSegments;
-
-    let indexA = Math.floor(scaledProgress);
-    let indexB = indexA + 1;
-
-    indexA = Math.max(0, Math.min(indexA, totalSegments));
-    indexB = Math.max(0, Math.min(indexB, totalSegments));
-
-    let localProgress = 0;
-    if (progressPerSegment > 0) {
-      localProgress = (progress - (indexA * progressPerSegment)) / progressPerSegment;
-    }
-
-    if (progress >= 1.0) {
-      indexA = totalSegments;
-      indexB = totalSegments;
-      localProgress = 1.0;
-    }
-
-    localProgress = Math.max(0, Math.min(localProgress, 1.0));
+    const { indexA, indexB, localProgress } = resolveSequenceInterpolation(progress, numItems);
 
     const itemA = sequence[indexA];
     const itemB = sequence[indexB];

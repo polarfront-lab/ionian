@@ -18,10 +18,11 @@ export class DefaultEventEmitter implements EngineEventEmitter<Events> {
   }
 
   once<Key extends keyof Events>(type: Key, handler: (payload: Events[Key]) => void): void {
-    this.emitter.on(type, (payload: Events[Key]) => {
-      this.emitter.off(type, handler);
+    const wrappedHandler = (payload: Events[Key]) => {
+      this.emitter.off(type, wrappedHandler);
       handler(payload);
-    });
+    };
+    this.emitter.on(type, wrappedHandler);
   }
 
   dispose(): void {
