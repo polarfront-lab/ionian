@@ -6,7 +6,7 @@ import { PositionAtlasEntry, SimulationRenderer } from './simulationRenderer';
 export class SimulationRendererService {
   private state!: ServiceState;
   private textureSize: number;
-  private overallProgress: number; // ADDED: Store overall progress
+  private overallProgress: number;
   private velocityTractionForce: number;
   private positionalTractionForce: number;
 
@@ -14,8 +14,7 @@ export class SimulationRendererService {
   private webGLRenderer;
   private eventEmitter;
 
-  // Store atlas info
-  private currentAtlasEntry: PositionAtlasEntry | null = null; // ADDED
+  private currentAtlasEntry: PositionAtlasEntry | null = null;
 
   private lastKnownVelocityDataTexture: THREE.Texture;
   private lastKnownPositionDataTexture: THREE.Texture;
@@ -24,7 +23,7 @@ export class SimulationRendererService {
     this.eventEmitter = eventEmitter;
     this.webGLRenderer = webGLRenderer;
     this.textureSize = size;
-    this.overallProgress = 0; // ADDED: Initialize overall progress
+    this.overallProgress = 0;
     this.velocityTractionForce = 0.1;
     this.positionalTractionForce = 0.1;
 

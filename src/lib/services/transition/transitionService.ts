@@ -2,37 +2,16 @@ import { DefaultEventEmitter } from '@/lib/events';
 import { TransitionDetail, TransitionOptions, TransitionType } from '@/lib/types';
 import { clamp } from '@/lib/utils';
 
-type ExecStatus = 'idle' | 'running';
-
 type TransitionQueueItem = { cancelled: boolean; startTime?: number } & TransitionDetail & TransitionOptions;
 type OngoingTransition = { startTime: number } & TransitionQueueItem;
-
-class ExecutionStatusMap {
-  private readonly execStatus = new Map<TransitionType, ExecStatus>();
-
-  get(type: TransitionType): ExecStatus {
-    const status = this.execStatus.get(type);
-    if (!status) {
-      this.execStatus.set(type, 'idle');
-      return 'idle';
-    }
-    return status;
-  }
-
-  set(type: TransitionType, status: ExecStatus) {
-    this.execStatus.set(type, status);
-  }
-}
 
 export class TransitionService {
   private readonly eventEmitter;
   private readonly transitions: Map<TransitionType, Array<TransitionQueueItem>> = new Map();
-  private readonly execStatus: ExecutionStatusMap;
   private readonly ongoingTransitions: Map<TransitionType, OngoingTransition> = new Map();
 
   constructor(eventEmitter: DefaultEventEmitter) {
     this.eventEmitter = eventEmitter;
-    this.execStatus = new ExecutionStatusMap();
     this.eventEmitter.on('transitionCancelled', this.handleTransitionCancelledEvent.bind(this));
   }
 
@@ -103,6 +82,7 @@ export class TransitionService {
     if (ongoingTransition) {
       ongoingTransition.cancelled = true;
       ongoingTransition.onTransitionCancelled?.();
+      this.ongoingTransitions.delete(type);
     }
   }
 

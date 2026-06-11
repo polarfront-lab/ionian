@@ -1,5 +1,5 @@
 import { DefaultEventEmitter } from '@/lib/events/defaultEventEmitter';
-import { MeshData, ServiceState } from '@/lib/types';
+import { ServiceState } from '@/lib/types';
 import { createDataTexture } from '@/lib/utils';
 import * as THREE from 'three';
 import { MeshSurfaceSampler } from 'three/examples/jsm/math/MeshSurfaceSampler.js';
@@ -48,8 +48,7 @@ export class DataTextureService {
       return cachedTexture;
     }
 
-    const meshData = parseMeshData(asset);
-    const array = sampleMesh(meshData, this.textureSize);
+    const array = sampleMesh(asset, this.textureSize);
     const dataTexture = createDataTexture(array, this.textureSize);
     dataTexture.name = asset.name; // Keep name for reference
     this.dataTextures.set(asset.uuid, dataTexture); // Cache using UUID
@@ -126,42 +125,29 @@ export class DataTextureService {
   }
 }
 
-/**
- * Parses mesh data into a simplified format.
- * @param mesh The mesh to parse.
- * @returns The parsed mesh data.
- */
-function parseMeshData(mesh: THREE.Mesh): MeshData {
-  return {
-    position: mesh.geometry.attributes.position.array,
-    normal: (mesh.geometry.attributes.normal as THREE.BufferAttribute)?.array,
-    scale: { x: mesh.scale.x, y: mesh.scale.y, z: mesh.scale.z },
-  };
-}
-
-function sampleMesh(meshData: MeshData, size: number): Float32Array {
-  const geometry = new THREE.BufferGeometry();
-  geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(meshData.position), 3));
-  if (meshData.normal) {
-    geometry.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(meshData.normal), 3));
-  }
-  const material = new THREE.MeshBasicMaterial();
-  const mesh = new THREE.Mesh(geometry, material);
-  mesh.scale.set(meshData.scale.x, meshData.scale.y, meshData.scale.z);
+function sampleMesh(sourceMesh: THREE.Mesh, size: number): Float32Array {
+  sourceMesh.updateWorldMatrix(true, false);
+  const geometry = sourceMesh.geometry.clone();
+  geometry.applyMatrix4(sourceMesh.matrixWorld);
+  const mesh = new THREE.Mesh(geometry);
 
   const sampler = new MeshSurfaceSampler(mesh).build();
   const data = new Float32Array(size * size * 4);
   const position = new THREE.Vector3();
 
-  for (let i = 0; i < size; i++) {
-    for (let j = 0; j < size; j++) {
-      const index = i * size + j;
-      sampler.sample(position);
-      data[4 * index] = position.x * meshData.scale.x;
-      data[4 * index + 1] = position.y * meshData.scale.y;
-      data[4 * index + 2] = position.z * meshData.scale.z;
-      data[4 * index + 3] = (Math.random() - 0.5) * 0.01;
+  try {
+    for (let i = 0; i < size; i++) {
+      for (let j = 0; j < size; j++) {
+        const index = i * size + j;
+        sampler.sample(position);
+        data[4 * index] = position.x;
+        data[4 * index + 1] = position.y;
+        data[4 * index + 2] = position.z;
+        data[4 * index + 3] = (Math.random() - 0.5) * 0.01;
+      }
     }
+  } finally {
+    geometry.dispose();
   }
 
   return data;

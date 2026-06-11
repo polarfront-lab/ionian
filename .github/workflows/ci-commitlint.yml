@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           # this is needed to get one of the
           # commitlint invocations below (that
@@ -28,21 +28,17 @@ jobs:
         with:
           version: 10
 
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v4
         name: Setup Node.js
         with:
           node-version: 20
           cache: 'pnpm'
 
-      - name: Prepare prerelease semantic
-        if: github.ref != 'refs/heads/main'
-        run: mv .releaserc.prerelease.yaml .releaserc.yaml
-
       - name: Install dependencies
         # If we don't do this, commitlint throws
         # errors about not finding rules package
         # for commit message conventions
-        run: pnpm i
+        run: pnpm install --frozen-lockfile
 
       # Using env in steps below to pass
       # required values from GitHub context rather

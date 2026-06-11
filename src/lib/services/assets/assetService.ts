@@ -4,6 +4,16 @@ import { disposeMesh } from '@/lib/utils';
 import * as THREE from 'three';
 import { DRACOLoader, GLTFLoader } from 'three-stdlib';
 
+const DEFAULT_DRACO_DECODER_PATH = 'https://www.gstatic.com/draco/versioned/decoders/1.5.7/';
+
+export interface AssetServiceOptions {
+  dracoDecoderPath?: string | null;
+}
+
+export interface LoadMeshOptions {
+  meshName?: string;
+}
+
 export class AssetService {
   private serviceState: ServiceState = 'created';
 
@@ -18,9 +28,12 @@ export class AssetService {
   private readonly solidColorTextures = new Map<string, THREE.Texture>();
   private fallbackTexture = new THREE.DataTexture(new Uint8Array([127, 127, 127, 255]), 1, 1, THREE.RGBAFormat);
 
-  constructor(eventEmitter: DefaultEventEmitter) {
+  constructor(eventEmitter: DefaultEventEmitter, options: AssetServiceOptions = {}) {
     this.eventEmitter = eventEmitter;
-    this.dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.7/');
+    const decoderPath = options.dracoDecoderPath ?? DEFAULT_DRACO_DECODER_PATH;
+    if (decoderPath) {
+      this.dracoLoader.setDecoderPath(decoderPath);
+    }
     this.gltfLoader.setDRACOLoader(this.dracoLoader);
     this.fallbackTexture.name = 'default-fallback-texture';
     this.updateServiceState('ready');
@@ -131,18 +144,16 @@ export class AssetService {
    * @param options - Optional parameters.
    * @returns The loaded mesh or null.
    */
-  async loadMeshAsync(id: string, url: string, options: { meshName?: string } = {}): Promise<THREE.Mesh | null> {
-    const gltf = await this.gltfLoader.loadAsync(url);
+  async loadMeshAsync(id: string, url: string, options: LoadMeshOptions = {}): Promise<THREE.Mesh | null> {
     try {
-      if (options.meshName) {
-        const mesh = gltf.scene.getObjectByName(options.meshName) as THREE.Mesh;
-        this.register(id, mesh);
-        return mesh;
-      } else {
-        const mesh = gltf.scene.children[0] as THREE.Mesh;
-        this.register(id, mesh);
-        return mesh;
+      const gltf = await this.gltfLoader.loadAsync(url);
+      const mesh = this.findMesh(gltf.scene, options.meshName);
+      if (!mesh) {
+        this.eventEmitter.emit('invalidRequest', { message: `failed to load mesh: ${id}. mesh not found` });
+        return null;
       }
+      this.register(id, mesh);
+      return mesh;
     } catch (error) {
       this.eventEmitter.emit('invalidRequest', { message: `failed to load mesh: ${id}. ${error}` });
       return null;
@@ -181,4 +192,23 @@ export class AssetService {
     this.serviceState = serviceState;
     this.eventEmitter.emit('serviceStateUpdated', { type: 'asset', state: serviceState });
   }
+
+  private findMesh(root: THREE.Object3D, meshName?: string): THREE.Mesh | null {
+    if (meshName) {
+      const named = root.getObjectByName(meshName);
+      return isMesh(named) ? named : null;
+    }
+
+    let found: THREE.Mesh | null = null;
+    root.traverse((object) => {
+      if (!found && isMesh(object)) {
+        found = object;
+      }
+    });
+    return found;
+  }
+}
+
+function isMesh(object: THREE.Object3D | undefined): object is THREE.Mesh {
+  return !!object && 'isMesh' in object && object.isMesh === true;
 }

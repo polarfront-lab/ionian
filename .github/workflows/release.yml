@@ -17,7 +17,7 @@ jobs:
       released: ${{ env.RELEASED }}
       newVersion: ${{ env.NEW_VERSION }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         name: Checkout code
         id: checkout
         with:
@@ -29,7 +29,7 @@ jobs:
         with:
           version: 10
 
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v4
         name: Setup Node.js
         with:
           node-version: 20
@@ -37,13 +37,10 @@ jobs:
 
       - name: Install Package Dependencies
         # needed for both commitlint and semantic-release to work
-        run: pnpm i
+        run: pnpm install --frozen-lockfile
 
-      - name: Build Library
-        run: pnpm run build
-
-      - name: Build Types
-        run: pnpm run build:types
+      - name: Validate package
+        run: pnpm run validate
 
       - name: Verify the integrity of provenance attestations and registry signatures for installed dependencies
         run: pnpm audit signature -P
