@@ -23,18 +23,21 @@ export class AssetService {
 
   private readonly gltfLoader = new GLTFLoader();
   private readonly textureLoader = new THREE.TextureLoader();
-  private readonly dracoLoader = new DRACOLoader();
+  private readonly dracoLoader: DRACOLoader | null;
 
   private readonly solidColorTextures = new Map<string, THREE.Texture>();
   private fallbackTexture = new THREE.DataTexture(new Uint8Array([127, 127, 127, 255]), 1, 1, THREE.RGBAFormat);
 
   constructor(eventEmitter: DefaultEventEmitter, options: AssetServiceOptions = {}) {
     this.eventEmitter = eventEmitter;
-    const decoderPath = options.dracoDecoderPath ?? DEFAULT_DRACO_DECODER_PATH;
-    if (decoderPath) {
+    const decoderPath = options.dracoDecoderPath === undefined ? DEFAULT_DRACO_DECODER_PATH : options.dracoDecoderPath;
+    if (decoderPath !== null) {
+      this.dracoLoader = new DRACOLoader();
       this.dracoLoader.setDecoderPath(decoderPath);
+      this.gltfLoader.setDRACOLoader(this.dracoLoader);
+    } else {
+      this.dracoLoader = null;
     }
-    this.gltfLoader.setDRACOLoader(this.dracoLoader);
     this.fallbackTexture.name = 'default-fallback-texture';
     this.updateServiceState('ready');
   }
@@ -185,6 +188,7 @@ export class AssetService {
     this.textures.clear();
     this.solidColorTextures.forEach((texture) => texture.dispose());
     this.solidColorTextures.clear();
+    this.dracoLoader?.dispose();
     this.fallbackTexture.dispose();
   }
 
