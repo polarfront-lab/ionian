@@ -138,6 +138,8 @@ export class InstancedMeshManager {
     const prev = this.mesh;
 
     this.mesh = this.createInstancedMesh(size, prev.geometry, prev.material);
+    this.copyMeshState(prev, this.mesh);
+    this.replaceMeshInParent(prev, this.mesh);
 
     return { current: this.mesh, previous: prev };
   }
@@ -222,5 +224,45 @@ export class InstancedMeshManager {
     geometry.setAttribute('uvRef', this.createUVRefs(size));
     const count = size * size;
     return new THREE.InstancedMesh(geometry, material, count);
+  }
+
+  private copyMeshState(source: THREE.InstancedMesh, target: THREE.InstancedMesh) {
+    target.name = source.name;
+    target.up.copy(source.up);
+    target.position.copy(source.position);
+    target.quaternion.copy(source.quaternion);
+    target.scale.copy(source.scale);
+    target.matrix.copy(source.matrix);
+    target.matrixWorld.copy(source.matrixWorld);
+    target.matrixAutoUpdate = source.matrixAutoUpdate;
+    target.matrixWorldAutoUpdate = source.matrixWorldAutoUpdate;
+    target.matrixWorldNeedsUpdate = source.matrixWorldNeedsUpdate;
+    target.layers.mask = source.layers.mask;
+    target.visible = source.visible;
+    target.castShadow = source.castShadow;
+    target.receiveShadow = source.receiveShadow;
+    target.frustumCulled = source.frustumCulled;
+    target.renderOrder = source.renderOrder;
+    target.animations = source.animations;
+    target.userData = source.userData;
+    target.customDepthMaterial = source.customDepthMaterial;
+    target.customDistanceMaterial = source.customDistanceMaterial;
+    target.onBeforeRender = source.onBeforeRender;
+    target.onAfterRender = source.onAfterRender;
+  }
+
+  private replaceMeshInParent(previous: THREE.InstancedMesh, current: THREE.InstancedMesh) {
+    const parent = previous.parent;
+    if (!parent) return;
+
+    const previousIndex = parent.children.indexOf(previous);
+    parent.add(current);
+    parent.remove(previous);
+
+    const currentIndex = parent.children.indexOf(current);
+    if (previousIndex < 0 || currentIndex < 0 || previousIndex === currentIndex) return;
+
+    parent.children.splice(currentIndex, 1);
+    parent.children.splice(Math.min(previousIndex, parent.children.length), 0, current);
   }
 }

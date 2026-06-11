@@ -121,9 +121,10 @@ export class ParticlesEngine {
     this.simulationRendererService.setTextureSize(size);
     const { current, previous } = this.instancedMeshManager.resize(size);
     if (current !== previous) {
-      this.scene.remove(previous);
       previous.dispose();
-      this.scene.add(current);
+      if (!current.parent) {
+        this.scene.add(current);
+      }
     }
 
     if (meshSequence.length > 0) {

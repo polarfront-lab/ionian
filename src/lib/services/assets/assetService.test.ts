@@ -1,9 +1,27 @@
 import { DefaultEventEmitter } from '@/lib/events';
 import * as THREE from 'three';
-import { describe, expect, it, vi } from 'vitest';
+import { DRACOLoader, GLTFLoader } from 'three-stdlib';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AssetService } from './assetService';
 
 describe('AssetService', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('does not attach a DRACO loader when the decoder path is null', () => {
+    const setDRACOLoader = vi.spyOn(GLTFLoader.prototype, 'setDRACOLoader');
+    const setDecoderPath = vi.spyOn(DRACOLoader.prototype, 'setDecoderPath');
+    const service = new AssetService(new DefaultEventEmitter(), { dracoDecoderPath: null });
+    const testable = service as unknown as { dracoLoader: DRACOLoader | null };
+
+    expect(testable.dracoLoader).toBeNull();
+    expect(setDecoderPath).not.toHaveBeenCalled();
+    expect(setDRACOLoader).not.toHaveBeenCalled();
+
+    service.dispose();
+  });
+
   it('registers and replaces mesh assets while disposing the previous mesh', () => {
     const service = new AssetService(new DefaultEventEmitter(), { dracoDecoderPath: null });
     const previous = new THREE.Mesh(new THREE.BoxGeometry(), new THREE.MeshBasicMaterial());
