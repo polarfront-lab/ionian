@@ -65,8 +65,10 @@ describe('AssetService', () => {
     const second = service.getSolidColorTexture(0x336699);
 
     expect(second).toBe(first);
-    expect(first.image.width).toBe(16);
-    expect(first.image.height).toBe(16);
+    expect(first).toBeInstanceOf(THREE.DataTexture);
+    const image = (first as THREE.DataTexture).image;
+    expect(image.width).toBe(16);
+    expect(image.height).toBe(16);
 
     service.dispose();
   });
